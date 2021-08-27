@@ -53,19 +53,32 @@ object GoogleSystemParameters:
       client.run(newReq)
     }
 
-sealed abstract class GoogleRetryPolicy
-object GoogleRetryPolicy:
-  val Key = newKey[SyncIO, GoogleRetryPolicy].unsafeRunSync()
-
-  final case class ExponentialBackoff(
+enum GoogleRetryPolicy:
+  case Disabled
+  case ExponentialBackoff(
       maxRetries: Int,
       minBackoff: FiniteDuration,
       maxBackoff: FiniteDuration,
       randomFactor: Double,
       status: Set[Status]
-  ) extends GoogleRetryPolicy
+  )
 
-  case object Disabled extends GoogleRetryPolicy
+  final def toRetryPolicy[F[_]]: RetryPolicy[F] =
+    val random = new SplittableRandom
+    (req, res, attempt) => {
+      req.attributes.lookup(GoogleRetryPolicy.Key).getOrElse(this) match
+        case ExponentialBackoff(maxRetries, minBackoff, maxBackoff, randomFactor, status)
+            if RetryPolicy.isErrorOrStatus(res, status) =>
+          RetryPolicy.exponentialBackoff(maxBackoff, maxRetries)(attempt).flatMap { duration =>
+            Some(duration.max(minBackoff) * random.nextDouble(randomFactor)).collect {
+              case duration: FiniteDuration => duration
+            }
+          }
+        case _ => None
+    }
+
+object GoogleRetryPolicy:
+  val Key = newKey[SyncIO, GoogleRetryPolicy].unsafeRunSync()
 
   import Status.*
   val Default = ExponentialBackoff(
@@ -81,20 +94,3 @@ object GoogleRetryPolicy:
       GatewayTimeout
     )
   )
-
-object GoogleRetry:
-  import GoogleRetryPolicy.*
-
-  def apply[F[_]](policy: GoogleRetryPolicy): RetryPolicy[F] =
-    val random = new SplittableRandom
-    (req, res, attempt) => {
-      req.attributes.lookup(GoogleRetryPolicy.Key).getOrElse(policy) match
-        case ExponentialBackoff(maxRetries, minBackoff, maxBackoff, randomFactor, status)
-            if RetryPolicy.isErrorOrStatus(res, status) =>
-          RetryPolicy.exponentialBackoff(maxBackoff, maxRetries)(attempt).flatMap { duration =>
-            Some(duration.max(minBackoff) * random.nextDouble(randomFactor)).collect {
-              case duration: FiniteDuration => duration
-            }
-          }
-        case _ => None
-    }
