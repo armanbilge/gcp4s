@@ -47,10 +47,11 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-core" % Fs2Version,
+      "co.fs2" %%% "fs2-io" % Fs2Version,
       "org.http4s" %%% "http4s-client" % Http4sVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
       "io.circe" %%% "circe-generic" % CirceVersion,
+      "io.circe" %%% "circe-jawn" % CirceVersion,
       "org.specs2" %%% "specs2-core" % Specs2Version % Test
     )
   )

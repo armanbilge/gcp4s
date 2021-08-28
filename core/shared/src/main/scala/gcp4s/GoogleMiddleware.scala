@@ -18,19 +18,30 @@ package gcp4s
 
 import cats.effect.SyncIO
 import cats.effect.kernel.MonadCancelThrow
+import cats.effect.kernel.Temporal
+import cats.syntax.all.given
+import fs2.io.file.Files
+import gcp4s.auth.ApplicationDefaultCredentials
+import gcp4s.auth.GoogleCredentials
+import gcp4s.auth.GoogleOAuth2
 import org.http4s.Query
 import org.http4s.Status
 import org.http4s.client.Client
 import org.http4s.client.Middleware
+import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
 import org.typelevel.vault.Key.newKey
 
 import java.util.SplittableRandom
 import scala.concurrent.duration.*
 
-opaque type ProjectId = String
-object ProjectId:
-  def apply(id: String): ProjectId = id
+object GoogleMiddleware:
+  def apply[F[_]: Temporal: GoogleOAuth2: ComputeMetadata: Files](scopes: Seq[String])(
+      client: Client[F]): F[Client[F]] =
+    given googleClient: Client[F] =
+      Retry(GoogleRetryPolicy.Default.toRetryPolicy[F])(GoogleSystemParameters[F]()(client))
+    for given GoogleCredentials[F] <- ApplicationDefaultCredentials[F](scopes)
+    yield GoogleCredentials[F](googleClient)
 
 /**
  * @see
