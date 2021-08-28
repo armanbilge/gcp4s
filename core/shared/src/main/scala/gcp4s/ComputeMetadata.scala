@@ -25,8 +25,7 @@ import org.http4s.Uri.Path
 import gcp4s.auth.AccessToken
 import org.http4s.client.Client
 import org.http4s.Headers
-import cats.effect.kernel.Concurrent
-import cats.effect.kernel.Clock
+import cats.effect.kernel.Temporal
 
 trait ComputeMetadata[F[_]]:
   def getProjectId: F[String]
@@ -41,7 +40,7 @@ object ComputeMetadata:
 
   inline def apply[F[_]](using cm: ComputeMetadata[F]): cm.type = cm
 
-  given [F[_]: Concurrent: Clock](using client: Client[F]): ComputeMetadata[F] with
+  given [F[_]: Temporal](using client: Client[F]): ComputeMetadata[F] with
     val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
     val headers = Headers(`Metadata-Flavor`)
     val baseUri: Uri = uri"http://metadata.google.internal/computeMetadata/v1"

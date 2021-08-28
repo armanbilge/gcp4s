@@ -19,23 +19,31 @@ package auth
 
 import cats.data.OptionT
 import cats.effect.kernel.Clock
-import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Temporal
 import cats.effect.kernel.Deferred
 import cats.effect.std.Semaphore
 import cats.syntax.all.given
 import org.http4s.Credentials
 import org.typelevel.ci.*
+import scodec.bits.ByteVector
 
 trait GoogleCredentials[F[_]]:
   def get: F[Credentials]
 
+object ServiceAccountCredentials:
+  def apply[F[_]: Temporal: GoogleOAuth2](
+      clientEmail: String,
+      privateKey: ByteVector,
+      scopes: Seq[String]): F[GoogleCredentials[F]] =
+    OAuth2Credentials(GoogleOAuth2[F].getAccessToken(clientEmail, privateKey, scopes))
+
 object ComputeEngineCredentials:
-  def apply[F[_]: Concurrent: Clock: ComputeMetadata]: F[GoogleCredentials[F]] =
+  def apply[F[_]: Temporal: ComputeMetadata]: F[GoogleCredentials[F]] =
     OAuth2Credentials(ComputeMetadata[F].getAccessToken)
 
 object OAuth2Credentials:
-  private[auth] def apply[F[_]: Clock](refresh: F[AccessToken])(
-      using F: Concurrent[F]): F[GoogleCredentials[F]] = for
+  private[auth] def apply[F[_]](refresh: F[AccessToken])(
+      using F: Temporal[F]): F[GoogleCredentials[F]] = for
     token <- F.ref(Option.empty[Deferred[F, Either[Throwable, AccessToken]]])
   yield new GoogleCredentials[F]:
     def get = for AccessToken(token, _) <- getToken

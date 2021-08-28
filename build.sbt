@@ -7,9 +7,7 @@ ThisBuild / startYear := Some(2021)
 
 ThisBuild / homepage := Some(url("https://github.com/armanbilge/gcp4s"))
 ThisBuild / scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/armanbilge/schrodinger"),
-    "git@github.com:armanbilge/schrodinger.git"))
+  ScmInfo(url("https://github.com/armanbilge/gcp4s"), "git@github.com:armanbilge/gcp4s.git"))
 sonatypeCredentialHost := "s01.oss.sonatype.org"
 
 replaceCommandAlias(
@@ -18,7 +16,7 @@ replaceCommandAlias(
 )
 replaceCommandAlias(
   "release",
-  "; reload; project /; +mimaReportBinaryIssuesIfRelevant; +publishIfRelevant; sonatypeBundleReleaseIfRelevant"
+  "; reload; project /; +mimaReportBinaryIssuesIfRelevant; +publishIfRelevant; sonatypeBundleRelease"
 )
 addCommandAlias("prePR", "; root/clean; +root/scalafmtAll; scalafmtSbt; +root/headerCreate")
 
@@ -42,8 +40,8 @@ lazy val root =
   project.aggregate(core.jvm, core.js).enablePlugins(NoPublishPlugin)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
   .in(file("core"))
+  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .settings(
     name := "gcp4s",
     libraryDependencies ++= Seq(
@@ -54,6 +52,21 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
       "io.circe" %%% "circe-generic" % CirceVersion,
       "org.specs2" %%% "specs2-core" % Specs2Version % Test
+    )
+  )
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "com.github.jwt-scala" %%% "jwt-circe" % "9.0.1"
+    )
+  )
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "io.circe" %%% "circe-scalajs" % CirceVersion
+    ),
+    useYarn := true,
+    yarnExtraArgs += "--frozen-lockfile",
+    Compile / npmDependencies ++= Seq(
+      "jsonwebtoken" -> "8.5.1"
     )
   )
   .settings(commonSettings)
