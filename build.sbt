@@ -28,7 +28,9 @@ val CatsEffectVersion = "3.2.3"
 val Fs2Version = "3.1.1"
 val Http4sVersion = "1.0.0-M24"
 val CirceVersion = "0.15.0-M1"
-val Specs2Version = "5.0.0-RC-03"
+val MunitVersion = "0.7.28"
+val MunitCE3Version = "1.0.5"
+val ScalaCheckEffectMunitVersion = "1.0.2"
 
 val commonSettings = Seq(
   scalacOptions ++=
@@ -52,7 +54,9 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
       "io.circe" %%% "circe-generic" % CirceVersion,
       "io.circe" %%% "circe-jawn" % CirceVersion,
-      "org.specs2" %%% "specs2-core" % Specs2Version % Test
+      "org.scalameta" %%% "munit" % MunitVersion % Test,
+      "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
+      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
     )
   )
   .jvmSettings(
