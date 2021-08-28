@@ -39,6 +39,8 @@ trait ComputeMetadata[F[_]]:
 
 object ComputeMetadata:
 
+  inline def apply[F[_]](using cm: ComputeMetadata[F]): cm.type = cm
+
   given [F[_]: Concurrent: Clock](using client: Client[F]): ComputeMetadata[F] with
     val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
     val headers = Headers(`Metadata-Flavor`)

@@ -17,10 +17,42 @@
 package gcp4s
 package auth
 
+import cats.data.OptionT
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Deferred
+import cats.effect.std.Semaphore
+import cats.syntax.all.given
 import org.http4s.Credentials
+import org.typelevel.ci.*
 
 trait GoogleCredentials[F[_]]:
   def get: F[Credentials]
 
+object ComputeEngineCredentials:
+  def apply[F[_]: Concurrent: Clock: ComputeMetadata]: F[GoogleCredentials[F]] =
+    OAuth2Credentials(ComputeMetadata[F].getAccessToken)
+
 object OAuth2Credentials:
-  final case class State[F[_]]()
+  private[auth] def apply[F[_]: Clock](refresh: F[AccessToken])(
+      using F: Concurrent[F]): F[GoogleCredentials[F]] = for
+    token <- F.ref(Option.empty[Deferred[F, Either[Throwable, AccessToken]]])
+  yield new GoogleCredentials[F]:
+    def get = for AccessToken(token, _) <- getToken
+    yield Credentials.Token(ci"bearer", token)
+
+    def getToken: F[AccessToken] = OptionT(token.get)
+      .semiflatMap(_.get.rethrow)
+      .flatMapF { token =>
+        for expired <- token.expiresSoon()
+        yield Option.unless(expired)(token)
+      }
+      .getOrElseF {
+        for
+          deferred <- F.deferred[Either[Throwable, AccessToken]]
+          refreshing <- token.tryUpdate(_ => Some(deferred))
+          token <-
+            if refreshing then refresh.attempt.flatTap(deferred.complete).rethrow
+            else getToken
+        yield token
+      }
