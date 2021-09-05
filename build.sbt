@@ -28,7 +28,7 @@ val CatsEffectVersion = "3.2.3"
 val Fs2Version = "3.1.1"
 val Http4sVersion = "1.0.0-M24"
 val CirceVersion = "0.15.0-M1"
-val MunitVersion = "0.7.28"
+val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
 
