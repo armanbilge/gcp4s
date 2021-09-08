@@ -20,15 +20,15 @@ replaceCommandAlias(
 )
 addCommandAlias("prePR", "; root/clean; +root/scalafmtAll; scalafmtSbt; +root/headerCreate")
 
-val Scala3 = "3.0.1"
+val Scala3 = "3.0.2"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.6.1"
-val CatsEffectVersion = "3.2.3"
+val CatsEffectVersion = "3.2.8"
 val Fs2Version = "3.1.1"
-val Http4sVersion = "1.0.0-M24"
+val Http4sVersion = "1.0.0-M25"
 val CirceVersion = "0.15.0-M1"
-val MunitVersion = "0.7.28"
+val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
 
