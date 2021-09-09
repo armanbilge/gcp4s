@@ -29,31 +29,6 @@ object OpenApiPlugin extends AutoPlugin {
     val yaml = parse(IO.read(f)).fold(throw _, identity)
     val api = yaml.as[OpenApi].fold(throw _, identity)
 
-    val resources = api
-      .paths
-      .groupBy(_._2.all.head.operationId.split('.').init.last)
-      .map {
-        case (resource, operations) =>
-          val f =
-            (Compile / sourceManaged).value / "openapi" / "api" / s"${resource.capitalize}.scala"
-          IO.write(
-            f,
-            mkResource(
-              openApiPackage.value,
-              resource.capitalize,
-              operations.flatMap {
-                case (path, operations) =>
-                  operations.toMap.map {
-                    case (method, operation) =>
-                      (path, method, operation)
-                  }
-              }.toVector
-            )
-          )
-          f
-      }
-      .toVector
-
     val models = api
       .components
       .schemas
@@ -65,12 +40,14 @@ object OpenApiPlugin extends AutoPlugin {
       }
       .toVector
 
-    resources ++ models
+    models
   }
 
   def mkComponent(pkg: String, name: String, component: ComponentSchema): String = {
-    val properties = component.properties.map {
-      
+    val properties = component.properties.fold("") { properties =>
+      properties.toList.map { case (name, property) =>
+        mkProperty(name, property).toList
+      }.flatten.map("  " + _).mkString(",\n")
     }
     
     s"""|package ${pkg}.model
@@ -82,22 +59,32 @@ object OpenApiPlugin extends AutoPlugin {
         |/** ${component.description.getOrElse("")}
         | */
         |final case class ${name}(
-        |
-        )
+        |${properties}
+        |)
         |""".stripMargin
   }
 
-  def mkProperty(name: String, property: Property): String =
-    s"""${name}: Option[${mkPropertyType(property)}] = None""".stripMargin
-
-  def mkPropertyType(property: Property): String =
-    property.format.getOrElse(property.`type`) match {
-      case _ if property.description.contains("milliseconds") =>
-        "scala.concurrent.duration.FiniteDuration"
-      case "string" => "String"
-      case "boolean" => "Boolean"
-      case "integer" => "Int"
-      case "int64" => "Long"
+  def mkProperty(name: String, property: Property): Option[String] =
+    mkPropertyType(property).map { `type` =>
+      s"""${name}: Option[${`type`}] = None""".stripMargin
     }
+
+  def mkPropertyType(property: Property): Option[String] =
+    property.format.orElse(property.`type`).collect {
+      case _ if property.description.exists(_.contains("milliseconds")) =>
+        "scala.concurrent.duration.FiniteDuration".some
+      case "string" => "String".some
+      case "boolean" => "Boolean".some
+      case "integer" => "Int".some
+      case "int32" => "Int".some
+      case "int64" => "Long".some
+      case "double" => "Double".some
+      case "array" => 
+        property.items.flatMap(mkPropertyType).map { `type` =>
+          s"Vector[${`type`}]"
+        }
+      case "object" =>
+        property.`$ref`.orElse("io.circe.Json".some)
+    }.flatten
 
 }
