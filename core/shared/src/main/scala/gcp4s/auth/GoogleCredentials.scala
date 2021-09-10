@@ -39,7 +39,6 @@ import org.http4s.client.Middleware
 import org.http4s.headers.Authorization
 import org.typelevel.ci.*
 import scodec.bits.ByteVector
-import locales.cldr.data.metadata
 
 trait GoogleCredentials[F[_]]:
   def projectId: String
