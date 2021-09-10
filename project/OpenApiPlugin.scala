@@ -84,31 +84,38 @@ object OpenApiPlugin extends AutoPlugin {
       parentName: String,
       name: String,
       property: openapi.Property): Writer[List[CaseClass], String] = {
-    val fmtOrType = property.format.orElse(property.`type`)
 
-    val primitive = fmtOrType
+    val primitive = property
+      .format
       .collect {
-        case "string" => "String"
-        case "boolean" => "Boolean"
-        case "integer" => "Int"
         case "int32" => "Int"
         case "int64" =>
-          if (property.description.exists(_.contains("milliseconds")))
+          if (property.description.exists(_.contains("millis")))
             "_root_.scala.concurrent.duration.FiniteDuration"
           else
             "Long"
+        case "uint32" => "Long"
         case "uint64" => "BigInt"
         case "double" => "Double"
         case "byte" => "_root_.scodec.bits.ByteVector"
       }
+      .orElse(property.`type`.collect {
+        case "string" => "String"
+        case "boolean" => "Boolean"
+        case "integer" => "Int"
+        case "number" => "Double"
+      })
       .map(Writer(List.empty[CaseClass], _))
 
-    val array = fmtOrType.collect {
-      case "array" =>
-        property.items.map { p =>
-          mkPropertyType(parentName, name.capitalize, p).map { t => s"Vector[$t]" }
-        }
-    }.flatten
+    val array = property
+      .`type`
+      .collect {
+        case "array" =>
+          property.items.map { p =>
+            mkPropertyType(parentName, name.capitalize, p).map { t => s"Vector[$t]" }
+          }
+      }
+      .flatten
 
     val ref = property
       .`$ref`
@@ -120,7 +127,7 @@ object OpenApiPlugin extends AutoPlugin {
       }
       .map(Writer(List.empty[CaseClass], _))
 
-    val obj = fmtOrType.collect {
+    val obj = property.`type`.collect {
       case "object" =>
         property
           .properties
