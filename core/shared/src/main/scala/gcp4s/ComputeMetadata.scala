@@ -16,16 +16,16 @@
 
 package gcp4s
 
+import cats.effect.kernel.Temporal
+import gcp4s.auth.AccessToken
 import org.http4s.Header
-import org.typelevel.ci.given
+import org.http4s.Headers
 import org.http4s.Request
 import org.http4s.Uri
-import org.http4s.syntax.all.*
 import org.http4s.Uri.Path
-import gcp4s.auth.AccessToken
 import org.http4s.client.Client
-import org.http4s.Headers
-import cats.effect.kernel.Temporal
+import org.http4s.syntax.all.*
+import org.typelevel.ci.*
 
 trait ComputeMetadata[F[_]]:
   def getProjectId: F[String]
@@ -38,21 +38,20 @@ trait ComputeMetadata[F[_]]:
 
 object ComputeMetadata:
 
-  inline def apply[F[_]](using cm: ComputeMetadata[F]): cm.type = cm
+  def apply[F[_]: Temporal](client: Client[F]): ComputeMetadata[F] =
+    new ComputeMetadata[F]:
+      val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
+      val headers = Headers(`Metadata-Flavor`)
+      val baseUri: Uri = uri"http://metadata.google.internal/computeMetadata/v1"
+      def mkRequest(path: String) = Request[F](uri = baseUri / path, headers = headers)
 
-  given [F[_]: Temporal](using client: Client[F]): ComputeMetadata[F] with
-    val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
-    val headers = Headers(`Metadata-Flavor`)
-    val baseUri: Uri = uri"http://metadata.google.internal/computeMetadata/v1"
-    def mkRequest(path: String) = Request[F](uri = baseUri / path, headers = headers)
+      def get(path: String): F[String] = client.expect[String](mkRequest(path))
 
-    def get(path: String): F[String] = client.expect[String](mkRequest(path))
-
-    val getProjectId: F[String] = get("project/project-id")
-    val getZone: F[String] = get("instance/zone")
-    val getInstanceId: F[String] = get("instance/id")
-    val getClusterName: F[String] = get("instance/attributes/cluster-name")
-    val getContainerName: F[String] = get("instance/attributes/container-name")
-    val getNamespaceId: F[String] = get("instance/attributes/namespace-id")
-    val getAccessToken: F[AccessToken] =
-      client.expect("instance/service-accounts/default/token")
+      val getProjectId: F[String] = get("project/project-id")
+      val getZone: F[String] = get("instance/zone")
+      val getInstanceId: F[String] = get("instance/id")
+      val getClusterName: F[String] = get("instance/attributes/cluster-name")
+      val getContainerName: F[String] = get("instance/attributes/container-name")
+      val getNamespaceId: F[String] = get("instance/attributes/namespace-id")
+      val getAccessToken: F[AccessToken] =
+        client.expect("instance/service-accounts/default/token")

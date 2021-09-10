@@ -18,9 +18,10 @@ package gcp4s
 
 import io.circe.Decoder
 import io.circe.Encoder
+import scodec.bits.ByteVector
+
 import scala.concurrent.duration.*
 import scala.util.Try
-import scodec.bits.ByteVector
 
 private[gcp4s] object json:
   given Decoder[Long] = Decoder.decodeString.emapTry(s => Try(s.toLong))

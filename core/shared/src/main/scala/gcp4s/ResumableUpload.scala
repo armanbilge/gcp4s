@@ -17,7 +17,7 @@
 package gcp4s
 
 import cats.effect.kernel.Concurrent
-import cats.syntax.all.given
+import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Stream
 import org.http4s.EntityDecoder
@@ -40,9 +40,8 @@ object ResumableUpload:
    * @see
    *   [[https://cloud.google.com/bigquery/docs/reference/api-uploads BigQuery documentation]]
    */
-  def apply[F[_]: Concurrent, A](req: Request[F], chunkSize: Int)(
-      using client: Client[F],
-      decoder: EntityDecoder[F, A]): Pipe[F, Byte, A] =
+  def apply[F[_]: Concurrent, A](client: Client[F], req: Request[F], chunkSize: Int)(
+      using decoder: EntityDecoder[F, A]): Pipe[F, Byte, A] =
     in => {
 
       val chunkLimitMultiple = 256 * 1024

@@ -54,7 +54,8 @@ object OpenApiPlugin extends AutoPlugin {
               |import _root_.gcp4s.json.given
               |
               |$caseClass
-              |""".stripMargin)
+              |""".stripMargin
+        )
         f
       }
 
@@ -134,7 +135,11 @@ object OpenApiPlugin extends AutoPlugin {
           .getOrElse(Writer(List.empty[CaseClass], "_root_.io.circe.JsonObject"))
     }
 
-    primitive.orElse(ref).orElse(array).orElse(obj).getOrElse(Writer(Nil, "_root_.io.circe.Json"))
+    primitive
+      .orElse(ref)
+      .orElse(array)
+      .orElse(obj)
+      .getOrElse(Writer(Nil, "_root_.io.circe.Json"))
   }
 
 }

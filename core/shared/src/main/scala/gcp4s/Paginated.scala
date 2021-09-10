@@ -17,7 +17,7 @@
 package gcp4s
 
 import cats.MonadThrow
-import cats.syntax.all.given
+import cats.syntax.all.*
 import fs2.Stream
 import org.http4s.EntityDecoder
 import org.http4s.Method
@@ -30,8 +30,8 @@ trait Paginated[-A]:
 object Paginated:
   private val pageToken = "pageToken"
 
-  def apply[F[_]: MonadThrow, A: Paginated](
-      req: Request[F])(using client: Client[F], decoder: EntityDecoder[F, A]): Stream[F, A] =
+  def apply[F[_]: MonadThrow, A: Paginated](client: Client[F], req: Request[F])(
+      using decoder: EntityDecoder[F, A]): Stream[F, A] =
     req.method match
       case Method.GET =>
         val initialPageToken = req.uri.query.pairs.find(_._1 == pageToken).flatMap(_._2)

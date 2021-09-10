@@ -1,6 +1,6 @@
 case class CaseClass(
-  name: String,
-  parameters: List[Parameter],
+    name: String,
+    parameters: List[Parameter]
 ) {
   override def toString: String = {
     val name = Sanitize(this.name)
@@ -16,11 +16,11 @@ case class CaseClass(
 }
 
 case class Parameter(
-  name: String,
-  `type`: String,
-  required: Boolean
+    name: String,
+    `type`: String,
+    required: Boolean
 ) {
-  override def toString: String = 
+  override def toString: String =
     if (required)
       s"${Sanitize(name)}: ${`type`}"
     else

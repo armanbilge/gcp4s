@@ -17,45 +17,45 @@
 package gcp4s
 package auth
 
+import cats.data.NonEmptyList
 import cats.data.OptionT
 import cats.effect.kernel.Clock
-import cats.effect.kernel.Temporal
 import cats.effect.kernel.Deferred
 import cats.effect.kernel.MonadCancelThrow
+import cats.effect.kernel.Temporal
 import cats.effect.std.Semaphore
-import cats.effect.syntax.all.given
-import cats.syntax.all.given
-import fs2.text
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.CompositeFailure
 import fs2.io.file.Files
 import fs2.io.file.Path
-import org.http4s.Credentials
-import org.http4s.client.Client
-import org.http4s.client.Middleware
-import org.typelevel.ci.*
-import scodec.bits.ByteVector
+import fs2.text
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
 import io.circe.jawn
-import fs2.CompositeFailure
-import cats.data.NonEmptyList
+import org.http4s.Credentials
+import org.http4s.client.Client
+import org.http4s.client.Middleware
 import org.http4s.headers.Authorization
+import org.typelevel.ci.*
+import scodec.bits.ByteVector
+import locales.cldr.data.metadata
 
 trait GoogleCredentials[F[_]]:
   def projectId: String
   def get: F[Credentials]
 
-object GoogleCredentials:
-  def apply[F[_]: MonadCancelThrow](using credentials: GoogleCredentials[F]): Middleware[F] =
+  def middleware(using MonadCancelThrow[F]): Middleware[F] =
     client =>
       Client { req =>
         for
-          creds <- credentials.get.toResource
+          creds <- get.toResource
           res <- client.run(req.putHeaders(Authorization(creds)))
         yield res
       }
 
 object ApplicationDefaultCredentials:
-  def apply[F[_]: GoogleOAuth2: ComputeMetadata: Files](scopes: Seq[String])(
+  def apply[F[_]: Files](client: Client[F], scopes: Seq[String])(
       using F: Temporal[F]): F[GoogleCredentials[F]] =
     val serviceAccountCredentials =
       for
@@ -68,10 +68,15 @@ object ApplicationDefaultCredentials:
           .decode[ServiceAccountCredentialsFile](json)
           .liftTo[F]
         privateKey <- ByteVector.encodeAscii(privateKey).liftTo[F]
-        credentials <- ServiceAccountCredentials(projectId, clientEmail, privateKey, scopes)
+        credentials <- ServiceAccountCredentials(
+          GoogleOAuth2(client),
+          projectId,
+          clientEmail,
+          privateKey,
+          scopes)
       yield credentials
 
-    val computeEngineCredentials = ComputeEngineCredentials[F]
+    val computeEngineCredentials = ComputeEngineCredentials(ComputeMetadata(client))
 
     serviceAccountCredentials.handleErrorWith { e1 =>
       computeEngineCredentials.handleErrorWith { e2 =>
@@ -80,14 +85,13 @@ object ApplicationDefaultCredentials:
     }
 
 object ServiceAccountCredentials:
-  def apply[F[_]: Temporal: GoogleOAuth2](
+  def apply[F[_]: Temporal](
+      oauth2: GoogleOAuth2[F],
       projectId: String,
       clientEmail: String,
       privateKey: ByteVector,
       scopes: Seq[String]): F[GoogleCredentials[F]] =
-    OAuth2Credentials(
-      projectId,
-      GoogleOAuth2[F].getAccessToken(clientEmail, privateKey, scopes))
+    OAuth2Credentials(projectId, oauth2.getAccessToken(clientEmail, privateKey, scopes))
 
 final private[auth] case class ServiceAccountCredentialsFile(
     project_id: String,
@@ -97,10 +101,10 @@ private[auth] object ServiceAccountCredentialsFile:
   given Decoder[ServiceAccountCredentialsFile] = deriveDecoder
 
 object ComputeEngineCredentials:
-  def apply[F[_]: Temporal: ComputeMetadata]: F[GoogleCredentials[F]] =
+  def apply[F[_]: Temporal](metadata: ComputeMetadata[F]): F[GoogleCredentials[F]] =
     for
-      projectId <- ComputeMetadata[F].getProjectId
-      credentials <- OAuth2Credentials(projectId, ComputeMetadata[F].getAccessToken)
+      projectId <- metadata.getProjectId
+      credentials <- OAuth2Credentials(projectId, metadata.getAccessToken)
     yield credentials
 
 object OAuth2Credentials:

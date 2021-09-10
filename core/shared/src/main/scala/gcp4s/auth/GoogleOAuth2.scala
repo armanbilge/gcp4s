@@ -17,17 +17,18 @@
 package gcp4s.auth
 
 import cats.effect.kernel.Temporal
-import cats.syntax.all.given
+import cats.syntax.all.*
 import io.circe.Encoder
 import io.circe.generic.semiauto.*
-import org.http4s.syntax.all.*
-import scodec.bits.ByteVector
+import org.http4s.Method
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.multipart.Multipart
-import scala.concurrent.duration.given
 import org.http4s.multipart.Part
-import org.http4s.Request
-import org.http4s.Method
+import org.http4s.syntax.all.*
+import scodec.bits.ByteVector
+
+import scala.concurrent.duration.*
 
 trait GoogleOAuth2[F[_]]:
   def getAccessToken(
@@ -36,30 +37,29 @@ trait GoogleOAuth2[F[_]]:
       scopes: Seq[String]): F[AccessToken]
 
 private[auth] object GoogleOAuth2:
-  inline def apply[F[_]](using goa2: GoogleOAuth2[F]): goa2.type = goa2
-
-  given [F[_]: Temporal: Jwt](using client: Client[F]): GoogleOAuth2[F] with
-    val endpoint = uri"https://oauth2.googleapis.com/token"
-    def getAccessToken(
-        clientEmail: String,
-        privateKey: ByteVector,
-        scopes: Seq[String]): F[AccessToken] = for
-      jwt <- Jwt[F].sign(
-        JwtClaimContent(scopes.mkString(" ")),
-        endpoint.renderString,
-        clientEmail,
-        1.hour,
-        privateKey
-      )
-      entity = Multipart[F](
-        Vector(
-          Part.formData("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
-          Part.formData("assertion", jwt)
+  inline def apply[F[_]: Temporal: Jwt](client: Client[F]): GoogleOAuth2[F] =
+    new GoogleOAuth2:
+      val endpoint = uri"https://oauth2.googleapis.com/token"
+      def getAccessToken(
+          clientEmail: String,
+          privateKey: ByteVector,
+          scopes: Seq[String]): F[AccessToken] = for
+        jwt <- Jwt[F].sign(
+          JwtClaimContent(scopes.mkString(" ")),
+          endpoint.renderString,
+          clientEmail,
+          1.hour,
+          privateKey
         )
-      )
-      request = Request[F](Method.POST, endpoint).withEntity(entity)
-      accessToken <- client.expect[AccessToken](request)
-    yield accessToken
+        entity = Multipart[F](
+          Vector(
+            Part.formData("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
+            Part.formData("assertion", jwt)
+          )
+        )
+        request = Request[F](Method.POST, endpoint).withEntity(entity)
+        accessToken <- client.expect[AccessToken](request)
+      yield accessToken
 
     final case class JwtClaimContent(scope: String)
     object JwtClaimContent:

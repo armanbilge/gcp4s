@@ -16,16 +16,17 @@
 
 package gcp4s.auth
 
-import scala.concurrent.duration.*
+import cats.Functor
+import cats.data.EitherT
 import cats.effect.kernel.Clock
 import cats.effect.kernel.Temporal
-import cats.syntax.all.given
-import cats.Functor
-import io.circe.generic.semiauto.*
+import cats.syntax.all.*
 import io.circe.Decoder
+import io.circe.generic.semiauto.*
 import org.http4s.EntityDecoder
 import org.http4s.circe.jsonOf
-import cats.data.EitherT
+
+import scala.concurrent.duration.*
 
 final case class AccessToken(
     token: String,
