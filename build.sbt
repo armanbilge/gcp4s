@@ -31,6 +31,7 @@ val CirceVersion = "0.15.0-M1"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
+val ShapelessVersion = "3.0.2"
 
 val commonSettings = Seq(
   scalacOptions ++=
@@ -80,6 +81,11 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("bigquery"))
   .enablePlugins(OpenApiPlugin)
-  .settings(openApiPackage := "gcp4s.bigquery")
+  .settings(
+    openApiPackage := "gcp4s.bigquery",
+    libraryDependencies ++= Seq(
+      "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion
+    )
+  )
   .settings(commonSettings)
   .dependsOn(core)

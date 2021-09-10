@@ -22,11 +22,15 @@ import gcp4s.bigquery.model.TableCell
 import gcp4s.bigquery.model.TableRow
 import io.circe.Decoder
 import scodec.bits.ByteVector
+import shapeless3.deriving.*
 
 trait TableRowDecoder[A]:
   def decode(row: TableRow): Either[Throwable, A]
 
-object TableRowDecoder
+object TableRowDecoder:
+
+  given gen[A](using inst: K0.ProductInstances[TableCellDecoder, A]): TableRowDecoder[A] with
+    def decode(row: TableRow) = ???
 
 trait TableCellDecoder[A]:
   def decode(cell: TableCell): Either[Throwable, A]
