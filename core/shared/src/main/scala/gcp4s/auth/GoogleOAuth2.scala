@@ -63,4 +63,4 @@ private[auth] object GoogleOAuth2:
 
   final case class JwtClaimContent(scope: String)
   object JwtClaimContent:
-    given encoder: Encoder[JwtClaimContent] = deriveEncoder
+    given Encoder[JwtClaimContent] = deriveEncoder
