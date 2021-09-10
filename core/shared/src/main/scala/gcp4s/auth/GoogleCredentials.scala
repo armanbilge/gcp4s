@@ -54,7 +54,7 @@ trait GoogleCredentials[F[_]]:
       }
 
 object ApplicationDefaultCredentials:
-  def apply[F[_]: Files](client: Client[F], scopes: Seq[String])(
+  def apply[F[_]: Files: Jwt](client: Client[F], scopes: Seq[String])(
       using F: Temporal[F]): F[GoogleCredentials[F]] =
     val serviceAccountCredentials =
       for

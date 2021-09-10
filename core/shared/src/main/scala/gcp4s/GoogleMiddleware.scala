@@ -24,6 +24,7 @@ import fs2.io.file.Files
 import gcp4s.auth.ApplicationDefaultCredentials
 import gcp4s.auth.GoogleCredentials
 import gcp4s.auth.GoogleOAuth2
+import gcp4s.auth.Jwt
 import org.http4s.Query
 import org.http4s.Status
 import org.http4s.client.Client
@@ -36,7 +37,7 @@ import java.util.SplittableRandom
 import scala.concurrent.duration.*
 
 object GoogleMiddleware:
-  def apply[F[_]: Temporal: Files](scopes: Seq[String])(client: Client[F]): F[Client[F]] =
+  def apply[F[_]: Temporal: Files: Jwt](scopes: Seq[String])(client: Client[F]): F[Client[F]] =
     val googleClient =
       Retry(GoogleRetryPolicy.Default.toRetryPolicy[F])(GoogleSystemParameters[F]()(client))
     for credentials <- ApplicationDefaultCredentials[F](googleClient, scopes)
