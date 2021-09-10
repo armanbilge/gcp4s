@@ -1,3 +1,5 @@
+package openapi
+
 case class OpenApi(servers: List[Server], paths: Map[String, Path], components: Components)
 
 case class Server(url: String)
@@ -51,5 +53,6 @@ case class Property(
     format: Option[String],
     `type`: Option[String],
     `$ref`: Option[String],
+    properties: Option[Map[String, Property]],
     items: Option[Property]
 )

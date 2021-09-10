@@ -34,7 +34,7 @@ val ScalaCheckEffectMunitVersion = "1.0.2"
 
 val commonSettings = Seq(
   scalacOptions ++=
-    Seq("-new-syntax", "-indent", "-source:future"),
+    Seq("-new-syntax", "-indent", "-source:future", "-Xmax-inlines", "64"),
   sonatypeCredentialHost := "s01.oss.sonatype.org"
 )
 
