@@ -53,7 +53,8 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.http4s" %%% "http4s-client" % Http4sVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
       "io.circe" %%% "circe-generic" % CirceVersion,
-      "io.circe" %%% "circe-jawn" % CirceVersion,
+      "io.circe" %%% "circe-parser" % CirceVersion,
+      "io.circe" %%% "circe-scodec" % CirceVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
@@ -65,9 +66,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     )
   )
   .jsSettings(
-    libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-scalajs" % CirceVersion
-    ),
     useYarn := true,
     yarnExtraArgs += "--frozen-lockfile",
     Compile / npmDependencies ++= Seq(

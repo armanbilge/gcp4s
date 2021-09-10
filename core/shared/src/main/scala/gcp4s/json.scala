@@ -18,6 +18,8 @@ package gcp4s
 
 import io.circe.Decoder
 import io.circe.Encoder
+import io.circe.scodec.decodeByteVector
+import io.circe.scodec.encodeByteVector
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
@@ -33,5 +35,5 @@ private[gcp4s] object json:
   given (using d: Decoder[Long]): Decoder[FiniteDuration] = d.map(_.milliseconds)
   given (using e: Encoder[Long]): Encoder[FiniteDuration] = e.contramap(_.toMillis)
 
-  given Decoder[ByteVector] = Decoder.decodeString.emap(ByteVector.fromBase64Descriptive(_))
-  given Encoder[ByteVector] = Encoder.encodeString.contramap(_.toBase64)
+  given Decoder[ByteVector] = decodeByteVector
+  given Encoder[ByteVector] = encodeByteVector

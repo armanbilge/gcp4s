@@ -32,7 +32,7 @@ import fs2.io.file.Path
 import fs2.text
 import io.circe.Decoder
 import io.circe.generic.semiauto.*
-import io.circe.jawn
+import io.circe.parser
 import org.http4s.Credentials
 import org.http4s.client.Client
 import org.http4s.client.Middleware
@@ -63,7 +63,7 @@ object ApplicationDefaultCredentials:
           .through(text.utf8.decode)
           .compile
           .foldMonoid
-        ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- jawn
+        ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- parser
           .decode[ServiceAccountCredentialsFile](json)
           .liftTo[F]
         privateKey <- ByteVector.encodeAscii(privateKey).liftTo[F]
