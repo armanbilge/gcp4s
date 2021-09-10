@@ -133,6 +133,9 @@ object OpenApiPlugin extends AutoPlugin {
               componentName
             )
           }
+          .orElse(property.additionalProperties.map { p =>
+            mkPropertyType(parentName, name.capitalize, p).map { t => s"Map[String, $t]" }
+          })
           .getOrElse(Writer(List.empty[CaseClass], "_root_.io.circe.JsonObject"))
     }
 
