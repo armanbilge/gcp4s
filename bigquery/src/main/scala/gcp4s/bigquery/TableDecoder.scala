@@ -23,7 +23,7 @@ import gcp4s.bigquery.model.TableRow
 import io.circe.Decoder
 import io.circe.Json
 import scodec.bits.ByteVector
-import shapeless3.deriving.*
+import shapeless3.deriving.K0
 
 trait TableRowDecoder[A]:
   def decode(row: TableRow): Either[Throwable, A]
