@@ -25,7 +25,7 @@ ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.6.1"
 val CatsEffectVersion = "3.2.8"
-val Fs2Version = "3.1.1"
+val Fs2Version = "3.1.2"
 val Http4sVersion = "1.0.0-M25"
 val CirceVersion = "0.15.0-M1"
 val MunitVersion = "0.7.29"
@@ -53,8 +53,8 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "co.fs2" %%% "fs2-io" % Fs2Version,
       "org.http4s" %%% "http4s-client" % Http4sVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
-      "io.circe" %%% "circe-generic" % CirceVersion,
-      "io.circe" %%% "circe-jawn" % CirceVersion,
+      "io.circe" %%% "circe-parser" % CirceVersion,
+      "io.circe" %%% "circe-scodec" % CirceVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
@@ -66,9 +66,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     )
   )
   .jsSettings(
-    libraryDependencies ++= Seq(
-      "io.circe" %%% "circe-scalajs" % CirceVersion
-    ),
     useYarn := true,
     yarnExtraArgs += "--frozen-lockfile",
     Compile / npmDependencies ++= Seq(

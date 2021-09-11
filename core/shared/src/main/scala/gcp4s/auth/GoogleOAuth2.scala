@@ -19,7 +19,6 @@ package gcp4s.auth
 import cats.effect.kernel.Temporal
 import cats.syntax.all.*
 import io.circe.Encoder
-import io.circe.generic.semiauto.*
 import org.http4s.Method
 import org.http4s.Request
 import org.http4s.client.Client
@@ -61,6 +60,4 @@ private[auth] object GoogleOAuth2:
         accessToken <- client.expect[AccessToken](request)
       yield accessToken
 
-  final case class JwtClaimContent(scope: String)
-  object JwtClaimContent:
-    given Encoder[JwtClaimContent] = deriveEncoder
+  final case class JwtClaimContent(scope: String) derives Encoder.AsObject
