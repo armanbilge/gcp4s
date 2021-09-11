@@ -21,6 +21,7 @@ import cats.syntax.all.*
 import gcp4s.bigquery.model.TableCell
 import gcp4s.bigquery.model.TableRow
 import io.circe.Decoder
+import io.circe.Json
 import scodec.bits.ByteVector
 import shapeless3.deriving.*
 
@@ -29,8 +30,24 @@ trait TableRowDecoder[A]:
 
 object TableRowDecoder:
 
-  given gen[A](using inst: K0.ProductInstances[TableCellDecoder, A]): TableRowDecoder[A] with
-    def decode(row: TableRow) = ???
+  inline def apply[A](using d: TableRowDecoder[A]): d.type = d
+
+  def derived[A](using inst: K0.ProductInstances[TableCellDecoder, A]): TableRowDecoder[A] =
+    new TableRowDecoder[A]:
+      def decode(row: TableRow) = row.f.toRight(new NoSuchElementException).flatMap { f =>
+        val (err, a) =
+          inst.unfold(f.toList.asRight[Throwable]) {
+            [T] =>
+              (acc: Either[Throwable, List[TableCell]], d: TableCellDecoder[T]) =>
+                acc match
+                  case Right(head :: tail) =>
+                    val t = d.decode(head)
+                    (t.as(tail), t.toOption)
+                  case _ =>
+                    (Left(new NoSuchElementException), None)
+          }
+        a.toRight(err.left.toOption.getOrElse(new Exception("Derivation bug")))
+      }
 
 trait TableCellDecoder[A]:
   def decode(cell: TableCell): Either[Throwable, A]
@@ -57,6 +74,12 @@ object TableCellDecoder:
 
   given [A](using d: TableRowDecoder[A]): TableCellDecoder[A] with
     def decode(cell: TableCell) = TableCellDecoder[TableRow].decode(cell).flatMap(d.decode)
+
+  given [A](using d: TableCellDecoder[A]): TableCellDecoder[Option[A]] with
+    def decode(cell: TableCell) =
+      cell.v match
+        case Some(Json.Null) => Right(None)
+        case _ => d.decode(cell).map(_.some)
 
   given [A](using d: TableCellDecoder[A]): TableCellDecoder[Vector[A]] with
     def decode(cell: TableCell) = cell

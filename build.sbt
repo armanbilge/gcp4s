@@ -81,7 +81,10 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .settings(
     openApiPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion
+      "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
+      "org.scalameta" %%% "munit" % MunitVersion % Test,
+      "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
+      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
     )
   )
   .settings(commonSettings)
