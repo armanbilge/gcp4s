@@ -22,7 +22,6 @@ import cats.effect.kernel.Clock
 import cats.effect.kernel.Temporal
 import cats.syntax.all.*
 import io.circe.Decoder
-import io.circe.generic.semiauto.*
 import org.http4s.EntityDecoder
 import org.http4s.circe.jsonOf
 
@@ -48,6 +47,4 @@ final private[auth] case class AccessTokenResponse(
     access_token: String,
     token_type: String,
     expires_in: Int)
-
-private[auth] object AccessTokenResponse:
-  given Decoder[AccessTokenResponse] = deriveDecoder
+    derives Decoder

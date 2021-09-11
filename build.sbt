@@ -52,7 +52,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "co.fs2" %%% "fs2-io" % Fs2Version,
       "org.http4s" %%% "http4s-client" % Http4sVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
-      "io.circe" %%% "circe-generic" % CirceVersion,
       "io.circe" %%% "circe-parser" % CirceVersion,
       "io.circe" %%% "circe-scodec" % CirceVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,

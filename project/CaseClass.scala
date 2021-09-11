@@ -6,11 +6,7 @@ case class CaseClass(
     val name = Sanitize(this.name)
     s"""|final case class $name(
         |${parameters.map("  " + _).mkString(",\n")}
-        |)
-        |
-        |object $name:
-        |  given _root_.io.circe.Decoder[$name] = _root_.io.circe.generic.semiauto.deriveDecoder
-        |  given _root_.io.circe.Encoder[$name] = _root_.io.circe.generic.semiauto.deriveEncoder
+        |) derives _root_.io.circe.Decoder, _root_.io.circe.Encoder.AsObject
         |""".stripMargin
   }
 }

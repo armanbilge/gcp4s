@@ -31,7 +31,6 @@ import fs2.io.file.Files
 import fs2.io.file.Path
 import fs2.text
 import io.circe.Decoder
-import io.circe.generic.semiauto.*
 import io.circe.parser
 import org.http4s.Credentials
 import org.http4s.client.Client
@@ -96,8 +95,7 @@ final private[auth] case class ServiceAccountCredentialsFile(
     project_id: String,
     client_email: String,
     private_key: String)
-private[auth] object ServiceAccountCredentialsFile:
-  given Decoder[ServiceAccountCredentialsFile] = deriveDecoder
+    derives Decoder
 
 object ComputeEngineCredentials:
   def apply[F[_]: Temporal](metadata: ComputeMetadata[F]): F[GoogleCredentials[F]] =
