@@ -113,7 +113,9 @@ object OpenApiPlugin extends AutoPlugin {
       .collect {
         case "array" =>
           property.items.map { p =>
-            mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t => s"Vector[$t]" }
+            mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t =>
+              s"Vector[$t]"
+            }
           }
       }
       .flatten
