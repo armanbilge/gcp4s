@@ -37,3 +37,8 @@ private[gcp4s] object json:
 
   given Decoder[ByteVector] = decodeByteVector
   given Encoder[ByteVector] = encodeByteVector
+
+  given [A <: Singleton](using A <:< String): Decoder[A] =
+    Decoder.decodeString.emapTry(x => Try(x.asInstanceOf[A]))
+  given [A <: Singleton](using ev: A <:< String): Encoder[A] =
+    Encoder.encodeString.contramap(ev)

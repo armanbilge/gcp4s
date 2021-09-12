@@ -55,5 +55,6 @@ case class Property(
     `$ref`: Option[String],
     properties: Option[Map[String, Property]],
     additionalProperties: Option[Property],
-    items: Option[Property]
+    items: Option[Property],
+    `enum`: Option[List[String]]
 )
