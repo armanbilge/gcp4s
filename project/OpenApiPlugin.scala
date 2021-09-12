@@ -99,6 +99,7 @@ object OpenApiPlugin extends AutoPlugin {
         case "double" => "Double"
         case "byte" => "_root_.scodec.bits.ByteVector"
       }
+      .orElse(property.`enum`.map { enums => enums.map('"' + _ + '"').mkString(" | ") })
       .orElse(property.`type`.collect {
         case "string" => "String"
         case "boolean" => "Boolean"
