@@ -18,13 +18,18 @@ package gcp4s
 package bigquery
 
 import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Temporal
+import cats.effect.std.Queue
 import cats.effect.std.Random
 import cats.syntax.all.*
+import fs2.Chunk
 import fs2.Pipe
 import fs2.Stream
+import fs2.text
 import gcp4s.bigquery.model.*
 import io.circe.Encoder
 import io.circe.syntax.*
+import monocle.syntax.all.*
 import org.http4s.MediaType
 import org.http4s.Method.*
 import org.http4s.Uri
@@ -34,7 +39,7 @@ import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.syntax.all.*
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 
 trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F]:
 
@@ -166,6 +171,26 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
           POST(job, mediaUri).withHeaders(
             `X-Upload-Content-Type`(MediaType.application.`octet-stream`)))
       else _ => Stream.raiseError(new IllegalArgumentException("Not an upload job"))
+
+    def uploadAs[A: Encoder.AsObject]: Pipe[F, A, Job] =
+      _.map(_.asJson.noSpaces)
+        .intersperse("\n")
+        .through(text.utf8.encode)
+        .through(
+          job
+            .focus(_.configuration.some.load.some.sourceFormat)
+            .replace("NEWLINE_DELIMITED_JSON".some)
+            .upload)
+
+    def uploadsAs[A: Encoder.AsObject](rate: FiniteDuration = 1.minute)(
+        using Temporal[F]): Pipe[F, A, Job] = in =>
+      Stream.eval(Queue.synchronous[F, Option[Chunk[A]]]).flatMap { queue =>
+        def go: Stream[F, Job] = Stream
+          .fromQueueNoneTerminatedChunk(queue)
+          .interruptAfter(rate)
+          .through(uploadAs[A]) >> go
+        in.enqueueNoneTerminatedChunks(queue).merge(go)
+      }
 
   given Paginated[DatasetList] with
     extension (dl: DatasetList) def pageToken = dl.nextPageToken

@@ -21,13 +21,8 @@ import gcp4s.bigquery.model.DatasetList
 import gcp4s.bigquery.model.TableList
 import org.http4s.QueryParamEncoder
 import org.http4s.QueryParameterValue
+
 import scala.concurrent.duration.FiniteDuration
-
-private[bigquery] given Paginated[DatasetList] with
-  extension (dl: DatasetList) def pageToken = dl.nextPageToken
-
-private[bigquery] given Paginated[TableList] with
-  extension (tl: TableList) def pageToken = tl.nextPageToken
 
 private[bigquery] given QueryParamEncoder[FiniteDuration] =
   QueryParamEncoder.longQueryParamEncoder.contramap(_.toMillis)

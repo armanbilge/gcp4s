@@ -28,6 +28,7 @@ val CatsEffectVersion = "3.2.8"
 val Fs2Version = "3.1.2"
 val Http4sVersion = "1.0.0-M25"
 val CirceVersion = "0.15.0-M1"
+val MonocleVersion = "3.1.0"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
@@ -82,6 +83,7 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
     openApiPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
+      "dev.optics" %%% "monocle-core" % MonocleVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
