@@ -7,6 +7,7 @@ import io.circe.yaml.parser._
 import sbt.Keys._
 import sbt._
 import cats.Traverse
+import org.jboss.dna.common.text.Inflector
 
 object OpenApiPlugin extends AutoPlugin {
 
@@ -112,7 +113,7 @@ object OpenApiPlugin extends AutoPlugin {
       .collect {
         case "array" =>
           property.items.map { p =>
-            mkPropertyType(parentName, name.capitalize, p).map { t => s"Vector[$t]" }
+            mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t => s"Vector[$t]" }
           }
       }
       .flatten
@@ -152,5 +153,7 @@ object OpenApiPlugin extends AutoPlugin {
       .orElse(obj)
       .getOrElse(Writer(Nil, "_root_.io.circe.Json"))
   }
+
+  private val inflector = new Inflector()
 
 }

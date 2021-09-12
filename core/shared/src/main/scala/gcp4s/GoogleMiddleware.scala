@@ -26,6 +26,7 @@ import gcp4s.auth.GoogleCredentials
 import gcp4s.auth.GoogleOAuth2
 import gcp4s.auth.Jwt
 import org.http4s.Query
+import org.http4s.Request
 import org.http4s.Status
 import org.http4s.client.Client
 import org.http4s.client.Middleware
@@ -33,7 +34,7 @@ import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
 import org.typelevel.vault.Key.newKey
 
-import java.util.SplittableRandom
+import java.util.concurrent.ThreadLocalRandom
 import scala.concurrent.duration.*
 
 object GoogleMiddleware:
@@ -71,28 +72,40 @@ enum GoogleRetryPolicy:
       minBackoff: FiniteDuration,
       maxBackoff: FiniteDuration,
       randomFactor: Double,
-      status: Set[Status]
+      status: Set[Status],
+      reckless: Boolean
   )
 
   final def toRetryPolicy[F[_]]: RetryPolicy[F] =
-    val random = new SplittableRandom
     (req, res, attempt) => {
-      req.attributes.lookup(GoogleRetryPolicy.Key).getOrElse(this) match
-        case ExponentialBackoff(maxRetries, minBackoff, maxBackoff, randomFactor, status)
-            if RetryPolicy.isErrorOrStatus(res, status) =>
+      req
+        .attributes
+        .lookup(GoogleRetryPolicy.Key)
+        .getOrElse(identity[GoogleRetryPolicy])
+        .apply(this) match
+        case ExponentialBackoff(
+              maxRetries,
+              minBackoff,
+              maxBackoff,
+              randomFactor,
+              status,
+              reckless)
+            if (reckless || req.method.isIdempotent) && RetryPolicy.isErrorOrStatus(
+              res,
+              status) =>
           RetryPolicy.exponentialBackoff(maxBackoff, maxRetries)(attempt).flatMap { duration =>
-            Some(duration.max(minBackoff) * random.nextDouble(randomFactor)).collect {
-              case duration: FiniteDuration => duration
-            }
+            Some(
+              duration.max(minBackoff) * ThreadLocalRandom.current().nextDouble(randomFactor))
+              .collect { case duration: FiniteDuration => duration }
           }
         case _ => None
     }
 
 object GoogleRetryPolicy:
-  val Key = newKey[SyncIO, GoogleRetryPolicy].unsafeRunSync()
+  val Key = newKey[SyncIO, GoogleRetryPolicy => GoogleRetryPolicy].unsafeRunSync()
 
   import Status.*
-  val Default = ExponentialBackoff(
+  val Default: ExponentialBackoff = ExponentialBackoff(
     6,
     1.second,
     1.minute,
@@ -103,5 +116,6 @@ object GoogleRetryPolicy:
       BadGateway,
       ServiceUnavailable,
       GatewayTimeout
-    )
+    ),
+    false
   )

@@ -24,14 +24,13 @@ import org.http4s.Method
 import org.http4s.Request
 import org.http4s.client.Client
 
-trait Paginated[-A]:
-  extension [A](paginated: A) def pageToken: Option[String]
+trait Paginated[A]:
+  extension (paginated: A) def pageToken: Option[String]
 
-object Paginated:
-  private val pageToken = "pageToken"
-
-  def apply[F[_]: MonadThrow, A: Paginated](client: Client[F], req: Request[F])(
-      using decoder: EntityDecoder[F, A]): Stream[F, A] =
+extension [F[_]](client: Client[F])
+  def pageThrough[A: Paginated](
+      req: Request[F])(using MonadThrow[F], EntityDecoder[F, A]): Stream[F, A] =
+    val pageToken = "pageToken"
     req.method match
       case Method.GET =>
         val initialPageToken = req.uri.query.pairs.find(_._1 == pageToken).flatMap(_._2)

@@ -32,6 +32,9 @@ object TableRowDecoder:
 
   inline def apply[A](using d: TableRowDecoder[A]): d.type = d
 
+  given TableRowDecoder[TableRow] with
+    def decode(row: TableRow) = Right(row)
+
   def derived[A](using inst: K0.ProductInstances[TableCellDecoder, A]): TableRowDecoder[A] =
     new TableRowDecoder[A]:
       def decode(row: TableRow) = row.f.toRight(new NoSuchElementException).flatMap { f =>

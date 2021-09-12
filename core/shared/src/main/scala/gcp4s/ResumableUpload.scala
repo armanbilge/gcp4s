@@ -22,7 +22,9 @@ import fs2.Pipe
 import fs2.Stream
 import org.http4s.EntityDecoder
 import org.http4s.Header
+import org.http4s.MediaType
 import org.http4s.Method
+import org.http4s.ParseFailure
 import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.headers.Location
@@ -30,8 +32,15 @@ import org.http4s.headers.Range
 import org.http4s.headers.`Content-Range`
 import org.typelevel.ci.*
 
-object ResumableUpload:
+final case class `X-Upload-Content-Type`(mediaType: MediaType)
+object `X-Upload-Content-Type`:
+  given Header[`X-Upload-Content-Type`, Header.Single] = Header.createRendered(
+    ci"X-Upload-Content-Type",
+    _.mediaType,
+    _ => Left(ParseFailure("Parsing not implemented", ""))
+  )
 
+extension [F[_]](client: Client[F])
   /**
    * Initializes and runs a resumable upload to a media endpoint.
    *
@@ -40,9 +49,10 @@ object ResumableUpload:
    * @see
    *   [[https://cloud.google.com/bigquery/docs/reference/api-uploads BigQuery documentation]]
    */
-  def apply[F[_]: Concurrent, A](client: Client[F], req: Request[F], chunkSize: Int)(
-      using decoder: EntityDecoder[F, A]): Pipe[F, Byte, A] =
-    in => {
+  def resumableUpload[A](req: Request[F], chunkSize: Int = 15728640)(
+      using F: Concurrent[F],
+      decoder: EntityDecoder[F, A]): Pipe[F, Byte, A] =
+    in =>
 
       val chunkLimitMultiple = 256 * 1024
       val chunkLimit = (chunkSize & -chunkLimitMultiple).max(chunkLimitMultiple)
@@ -50,18 +60,11 @@ object ResumableUpload:
       if req.method != Method.POST then
         Stream.raiseError(
           new IllegalArgumentException("Resumable upload must be initiated by POST request"))
-      else if !req.uri.query.exists {
-          case ("uploadType", Some("resumable")) => true
-          case _ => false
-        } then
-        Stream.raiseError(
-          new IllegalArgumentException(
-            "Resumable upload must include query parameter `uploadType=resumable`"))
       else
         Stream
           .eval(
             client
-              .run(req)
+              .run(req.withUri(req.uri.withQueryParam("uploadType", "resumable")))
               .use(
                 _.headers
                   .get[Location]
@@ -95,5 +98,3 @@ object ResumableUpload:
               }
               .unNone
           }
-
-    }
