@@ -18,7 +18,7 @@ package gcp4s
 package bigquery
 
 import cats.effect.kernel.Concurrent
-import cats.effect.kernel.Deferred
+import cats.effect.kernel.Ref
 import cats.effect.kernel.Temporal
 import cats.effect.std.Queue
 import cats.effect.std.Random
@@ -208,14 +208,15 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
 
     def uploadsAs[A: Encoder.AsObject](rate: FiniteDuration = 1.minute)(
         using Temporal[F]): Pipe[F, A, Job] = in =>
-      Stream.eval((Deferred[F, Unit], Queue.synchronous[F, Chunk[A]]).tupled).flatMap {
+      Stream.eval((Ref.of(false), Queue.synchronous[F, Chunk[A]]).tupled).flatMap {
         (done, queue) =>
           def go: Stream[F, Job] = Stream
             .fromQueueUnterminatedChunk(queue)
             .interruptAfter(rate)
-            .through(uploadAs[A]) ++ (Stream.eval(done.tryGet).takeThrough(_.isDefined) >> go)
-          (in.enqueueUnterminatedChunks(queue) ++ Stream.eval(done.complete(())).drain)
-            .merge(go)
+            .through(uploadAs[A]) ++ Stream.eval(done.get).flatMap { done =>
+            if !done then go else Stream.empty
+          }
+          (in.enqueueUnterminatedChunks(queue) ++ Stream.eval(done.set(true)).drain).merge(go)
       }
 
   given Paginated[DatasetList] with
