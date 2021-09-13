@@ -119,7 +119,7 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
     ): Stream[F, A] = for
       dataList <- list(maxResults, selectedFields, startIndex)
       rows <- Stream.fromOption(dataList.rows)
-      a <- Stream.emits(rows).evalMapChunk(_.as[A].liftTo[F])
+      a <- Stream.evalSeq(rows.traverse(_.as[A]).liftTo[F])
     yield a
 
     def insertAll(retryFailedRequests: Boolean = false)
@@ -177,13 +177,27 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
         queryUri +?? ("maxResults" -> maxResults) +?? ("startIndex" -> startIndex) +?? ("timeoutMs" -> timeoutMs))
       Stream
         .repeatEval(client.expect[GetQueryResultsResponse](req))
-        .dropWhile(!_.jobComplete.contains(true))
-        .head
+        .takeThrough(!_.jobComplete.contains(true))
         .flatMap { head =>
-          Stream.emit(head) ++ Stream.fromOption(head.pageToken).flatMap { token =>
-            client.pageThrough(req.withUri(req.uri +? ("pageToken" -> token)))
-          }
+          val tail =
+            if head.jobComplete.contains(true) then
+              Stream.fromOption(head.pageToken).flatMap { token =>
+                client.pageThrough[GetQueryResultsResponse](
+                  req.withUri(req.uri +? ("pageToken" -> token)))
+              }
+            else Stream.empty
+          tail.cons1(head)
         }
+
+    def getQueryResultsAs[A: TableRowDecoder](
+        maxResults: Option[Int] = None,
+        startIndex: Option[Long] = None,
+        timeoutMs: Option[FiniteDuration] = None
+    ): Stream[F, A] = for
+      queryResults <- getQueryResults(maxResults, startIndex, timeoutMs)
+      rows <- Stream.fromOption(queryResults.rows)
+      a <- Stream.evalSeq(rows.traverse(_.as[A]).liftTo[F])
+    yield a
 
   extension (job: Job)
     def selfUri: Uri = job.jobReference.get.selfUri
