@@ -18,9 +18,9 @@ package gcp4s
 
 import cats.effect.IO
 import cats.effect.kernel.Deferred
+import cats.effect.std.Console
 import cats.effect.syntax.all.*
 import cats.effect.unsafe.implicits.*
-import cats.effect.std.Console
 import cats.syntax.all.*
 import gcp4s.auth.GoogleCredentials
 import gcp4s.auth.GoogleOAuth2
@@ -29,10 +29,10 @@ import gcp4s.auth.ServiceAccountCredentialsFile
 import io.circe.parser
 import munit.CatsEffectSuite
 import org.http4s.client.Client
-import org.http4s.client.middleware.Retry
-import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.client.middleware.RequestLogger
 import org.http4s.client.middleware.ResponseLogger
+import org.http4s.client.middleware.Retry
+import org.http4s.ember.client.EmberClientBuilder
 
 object Gcp4sLiveSuite:
   val scopes = List("https://www.googleapis.com/auth/bigquery")
@@ -41,20 +41,10 @@ object Gcp4sLiveSuite:
     val deferred =
       Deferred.unsafe[IO, Either[Throwable, (Client[IO], GoogleCredentials[IO], Client[IO])]]
     val resource = for
-      ember <- EmberClientBuilder
-        .default[IO]
-        .build
-        // NEVER log in CI, the output could compromise SERVICE_ACCOUNT_CREDENTIALS
-        .map(
-          RequestLogger(
-            false,
-            true,
-            logAction = Option.when(!BuildInfo.githubIsWorkflowBuild)(Console[IO].println)))
-        .map(
-          ResponseLogger(
-            false,
-            true,
-            logAction = Option.when(!BuildInfo.githubIsWorkflowBuild)(Console[IO].println)))
+      ember <- EmberClientBuilder.default[IO].build
+      // NEVER log in CI, the output could compromise SERVICE_ACCOUNT_CREDENTIALS
+      // .map(RequestLogger(true, false, redactHeadersWhen = _ => false))
+      // .map(ResponseLogger(false, false))
       ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- IO
         .fromEither(
           parser.decode[ServiceAccountCredentialsFile](

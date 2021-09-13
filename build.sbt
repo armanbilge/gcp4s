@@ -49,19 +49,7 @@ val commonJSSettings = Seq(
 )
 
 lazy val root =
-  project
-    .aggregate(buildInfo.jvm, buildInfo.js, core.jvm, core.js, bigQuery.jvm, bigQuery.js)
-    .enablePlugins(NoPublishPlugin)
-
-lazy val buildInfo = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("buildinfo"))
-  .enablePlugins(BuildInfoPlugin, NoPublishPlugin)
-  .settings(
-    name := "buildinfo",
-    buildInfoPackage := "gcp4s",
-    buildInfoKeys += githubIsWorkflowBuild
-  )
+  project.aggregate(core.jvm, core.js, bigQuery.jvm, bigQuery.js).enablePlugins(NoPublishPlugin)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
@@ -95,7 +83,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   )
   .settings(commonSettings)
   .jsSettings(commonJSSettings)
-  .dependsOn(buildInfo % Test)
 
 lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)

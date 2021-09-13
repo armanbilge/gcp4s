@@ -32,11 +32,11 @@ import fs2.io.file.Path
 import fs2.text
 import io.circe.Decoder
 import io.circe.parser
+import org.http4s.AuthScheme
 import org.http4s.Credentials
 import org.http4s.client.Client
 import org.http4s.client.Middleware
 import org.http4s.headers.Authorization
-import org.typelevel.ci.*
 import scodec.bits.ByteVector
 
 trait GoogleCredentials[F[_]]:
@@ -137,7 +137,7 @@ object OAuth2Credentials:
     val projectId = pid
 
     def get = for AccessToken(token, _) <- getToken
-    yield Credentials.Token(ci"bearer", token)
+    yield Credentials.Token(AuthScheme.Bearer, token)
 
     def getToken: F[AccessToken] = OptionT(token.get)
       .semiflatMap(_.get.rethrow)

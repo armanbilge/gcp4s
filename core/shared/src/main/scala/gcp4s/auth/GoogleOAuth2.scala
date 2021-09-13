@@ -19,9 +19,11 @@ package gcp4s.auth
 import cats.effect.kernel.Temporal
 import cats.syntax.all.*
 import io.circe.Encoder
-import org.http4s.Method
+import org.http4s.Method.POST
 import org.http4s.Request
+import org.http4s.UrlForm
 import org.http4s.client.Client
+import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.multipart.Multipart
 import org.http4s.multipart.Part
 import org.http4s.syntax.all.*
@@ -37,7 +39,7 @@ trait GoogleOAuth2[F[_]]:
 
 object GoogleOAuth2:
   def apply[F[_]: Temporal: Jwt](client: Client[F]): GoogleOAuth2[F] =
-    new GoogleOAuth2:
+    new GoogleOAuth2 with Http4sClientDsl[F]:
       val endpoint = uri"https://oauth2.googleapis.com/token"
       def getAccessToken(
           clientEmail: String,
@@ -50,13 +52,12 @@ object GoogleOAuth2:
           1.hour,
           privateKey
         )
-        entity = Multipart[F](
-          Vector(
-            Part.formData("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer"),
-            Part.formData("assertion", jwt)
-          )
-        )
-        request = Request[F](Method.POST, endpoint).withEntity(entity)
+        request = POST(
+          UrlForm(
+            "grant_type" -> "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion" -> jwt
+          ),
+          endpoint)
         accessToken <- client.expect[AccessToken](request)
       yield accessToken
 
