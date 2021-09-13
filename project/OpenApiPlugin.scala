@@ -90,7 +90,7 @@ object OpenApiPlugin extends AutoPlugin {
       .format
       .collect {
         case "int32" => "Int"
-        case "int64" =>
+        case "int64" | "uint32" =>
           if (property.description.exists(_.contains("millis")))
             "_root_.scala.concurrent.duration.FiniteDuration"
           else

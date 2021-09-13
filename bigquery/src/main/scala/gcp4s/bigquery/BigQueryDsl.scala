@@ -17,6 +17,7 @@
 package gcp4s
 package bigquery
 
+import cats.data.NonEmptyVector
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Temporal
@@ -42,7 +43,7 @@ import org.http4s.syntax.all.*
 
 import scala.concurrent.duration.*
 
-trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F]:
+trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4sClientDsl[F]:
 
   val endpoint = uri"https://bigquery.googleapis.com/bigquery/v2/"
   val mediaEndpoint = uri"https://bigquery.googleapis.com/upload/bigquery/v2/"
@@ -169,7 +170,7 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
     def cancel: F[Unit] = client.expect(POST(selfUri / "cancel"))
 
     def getQueryResults(
-        maxResults: Option[Int] = None,
+        maxResults: Option[Long] = None,
         startIndex: Option[Long] = None,
         timeoutMs: Option[FiniteDuration] = None
     ): Stream[F, GetQueryResultsResponse] =
@@ -190,12 +191,20 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
         }
 
     def getQueryResultsAs[A: TableRowDecoder](
-        maxResults: Option[Int] = None,
+        maxResults: Option[Long] = None,
         startIndex: Option[Long] = None,
         timeoutMs: Option[FiniteDuration] = None
-    ): Stream[F, A] = for
-      queryResults <- getQueryResults(maxResults, startIndex, timeoutMs)
-      rows <- Stream.fromOption(queryResults.rows)
+    ): Stream[F, A] =
+      getQueryResults(maxResults, startIndex, timeoutMs).through(queryResultsAs[A])
+
+  private def queryResultsAs[A: TableRowDecoder](
+      in: Stream[F, GetQueryResultsResponse]): Stream[F, A] =
+    for
+      queryResults <- in
+      rows <- Stream
+        .fromOption(queryResults.errors.flatMap(NonEmptyVector.fromVector))
+        .flatMap(errors => Stream.raiseError(BigQueryException(errors)))
+        .ifEmpty(Stream.fromOption(queryResults.rows))
       a <- Stream.evalSeq(rows.traverse(_.as[A]).liftTo[F])
     yield a
 
@@ -235,6 +244,35 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
           (in.enqueueUnterminatedChunks(queue) ++ Stream.eval(done.set(true)).drain).merge(go)
       }
 
+  extension (query: QueryRequest)
+    def run_(projectId: String): F[QueryResponse] =
+      client.expect(POST(query, ProjectReference(projectId.some).selfUri / "queries"))
+
+    def run(projectId: String): Stream[F, Either[QueryResponse, GetQueryResultsResponse]] =
+      Stream.eval(run_(projectId)).flatMap { head =>
+        val tail =
+          if head.jobComplete.contains(true) && head.pageToken.isEmpty then Stream.empty
+          else
+            for
+              jobReference <- Stream.fromOption(head.jobReference)
+              results <- jobReference.getQueryResults(
+                query.maxResults.map(_ - head.rows.fold(0)(_.size)),
+                head.rows.map(_.size),
+                query.timeoutMs
+              )
+            yield Right(results)
+        tail.cons1(Left(head)).onFinalize(head.jobReference.fold(F.unit)(_.cancel))
+      }
+
+    def runAs[A: TableRowDecoder](projectId: String): Stream[F, A] =
+      run(projectId)
+        .map {
+          case Left(response) =>
+            GetQueryResultsResponse(rows = response.rows, errors = response.errors)
+          case Right(right) => right
+        }
+        .through(queryResultsAs)
+
   given Paginated[DatasetList] with
     extension (dl: DatasetList) def pageToken = dl.nextPageToken
 
@@ -246,9 +284,6 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
 
   given Paginated[TableDataList] with
     extension (tdl: TableDataList) def pageToken = tdl.pageToken
-
-  given Paginated[QueryResponse] with
-    extension (qr: QueryResponse) def pageToken = qr.pageToken
 
   given Paginated[GetQueryResultsResponse] with
     extension (gqrs: GetQueryResultsResponse) def pageToken = gqrs.pageToken
