@@ -14,33 +14,19 @@
  * limitations under the License.
  */
 
-package gcp4s.auth
+package gcp4s
+package auth
 
 import fs2.io.file.Path
-import scala.scalajs.js
-import scala.scalajs.js.annotation.JSImport
 
 private[auth] def getWellKnownCredentials: Path =
-  process
+  platform
     .env
     .get("CLOUDSDK_CONFIG")
     .map(Path(_))
     .orElse {
-      Option.when(os.platform() == "wind32") {
-        Path(process.env("APPDATA")) / "gcloud"
+      Option.when(platform.windows) {
+        Path(platform.env("APPDATA")) / "gcloud"
       }
     }
-    .getOrElse {
-      Path(os.homedir()) / ".config" / "gcloud"
-    } / "application_default_credentials.json"
-
-@js.native
-@JSImport("os", JSImport.Default)
-private[auth] object os extends js.Object:
-  def homedir(): String = js.native
-  def platform(): String = js.native
-
-@js.native
-@JSImport("process", JSImport.Default)
-private[auth] object process extends js.Object:
-  def env: js.Dictionary[String] = js.native
+    .getOrElse(platform.home / ".config" / "gcloud") / "application_default_credentials.json"

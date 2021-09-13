@@ -17,16 +17,15 @@
 package gcp4s.auth
 
 import cats.effect.kernel.Async
-import fs2.Chunk
+import cats.syntax.all.*
 import io.circe.Encoder
-import scala.concurrent.duration.FiniteDuration
+import io.circe.scalajs.*
 import scodec.bits.ByteVector
-import cats.syntax.all.given
-import io.circe.scalajs.given
-import scala.concurrent.duration.given
+
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
-import scala.scalajs.js.typedarray.Uint8Array
 
 abstract private[auth] class JwtCompanionPlatform:
   given [F[_]](using F: Async[F]): Jwt[F] with
@@ -37,10 +36,12 @@ abstract private[auth] class JwtCompanionPlatform:
         expiresIn: FiniteDuration,
         privateKey: ByteVector
     ): F[String] =
+      val key =
+        s"-----BEGIN PRIVATE KEY-----\n${privateKey.toBase64}\n-----END PRIVATE KEY-----"
       F.async_ { cb =>
         jsonwebtoken.sign(
           payload.asJsAny,
-          Chunk.byteVector(privateKey).toUint8Array,
+          key,
           SignOptions("RS256", audience, issuer, expiresIn.toSeconds.toDouble),
           (err, signed) => cb(signed.toRight(js.JavaScriptException(err)))
         )
@@ -53,7 +54,7 @@ private[auth] object jsonwebtoken:
   @JSImport("jsonwebtoken", "sign")
   def sign(
       payload: js.Any,
-      secretOrPrivateKey: Uint8Array,
+      secretOrPrivateKey: String,
       options: SignOptions,
       callback: SignCallback): Unit = js.native
 

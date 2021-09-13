@@ -10,6 +10,8 @@ ThisBuild / scmInfo := Some(
   ScmInfo(url("https://github.com/armanbilge/gcp4s"), "git@github.com:armanbilge/gcp4s.git"))
 sonatypeCredentialHost := "s01.oss.sonatype.org"
 
+ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
+
 replaceCommandAlias(
   "ci",
   "; project /; headerCheckAll; scalafmtCheckAll; scalafmtSbtCheck; clean; testIfRelevant; mimaReportBinaryIssuesIfRelevant"
@@ -40,8 +42,26 @@ val commonSettings = Seq(
   sonatypeCredentialHost := "s01.oss.sonatype.org"
 )
 
+val commonJSSettings = Seq(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+  useYarn := true,
+  yarnExtraArgs += "--frozen-lockfile"
+)
+
 lazy val root =
-  project.aggregate(core.jvm, core.js).enablePlugins(NoPublishPlugin)
+  project
+    .aggregate(buildInfo.jvm, buildInfo.js, core.jvm, core.js, bigQuery.jvm, bigQuery.js)
+    .enablePlugins(NoPublishPlugin)
+
+lazy val buildInfo = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("buildinfo"))
+  .enablePlugins(BuildInfoPlugin, NoPublishPlugin)
+  .settings(
+    name := "buildinfo",
+    buildInfoPackage := "gcp4s",
+    buildInfoKeys += githubIsWorkflowBuild
+  )
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
@@ -58,36 +78,37 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "io.circe" %%% "circe-scodec" % CirceVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
-      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
+      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test,
+      "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test
     )
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "com.github.jwt-scala" %%% "jwt-circe" % "9.0.1"
+      "com.github.jwt-scala" %%% "jwt-circe" % "9.0.1",
+      "ch.qos.logback" % "logback-classic" % "1.2.6" % Test
     )
   )
   .jsSettings(
-    useYarn := true,
-    yarnExtraArgs += "--frozen-lockfile",
     Compile / npmDependencies ++= Seq(
       "jsonwebtoken" -> "8.5.1"
     )
   )
   .settings(commonSettings)
+  .jsSettings(commonJSSettings)
+  .dependsOn(buildInfo % Test)
 
 lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("bigquery"))
   .enablePlugins(OpenApiPlugin)
+  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .settings(
     openApiPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
-      "dev.optics" %%% "monocle-core" % MonocleVersion,
-      "org.scalameta" %%% "munit" % MunitVersion % Test,
-      "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
-      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test
+      "dev.optics" %%% "monocle-core" % MonocleVersion
     )
   )
   .settings(commonSettings)
-  .dependsOn(core)
+  .jsSettings(commonJSSettings)
+  .dependsOn(core % "compile->compile;test->test")

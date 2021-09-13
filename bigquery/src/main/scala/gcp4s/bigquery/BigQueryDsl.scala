@@ -43,6 +43,9 @@ import org.http4s.syntax.all.*
 
 import scala.concurrent.duration.*
 
+object BigQueryDsl:
+  def apply[F[_]: Concurrent](client: Client[F]) = new BigQueryDsl(client) {}
+
 trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4sClientDsl[F]:
 
   val endpoint = uri"https://bigquery.googleapis.com/bigquery/v2/"

@@ -14,21 +14,11 @@
  * limitations under the License.
  */
 
-package gcp4s.auth
+package gcp4s
 
 import fs2.io.file.Path
 
-private[auth] def getWellKnownCredentials: Path =
-  sys
-    .env
-    .get("CLOUDSDK_CONFIG")
-    .map(Path(_))
-    .orElse {
-      val windows = sys.props.get("os.name").map(_.toLowerCase).exists(_.contains("windows"))
-      Option.when(windows) {
-        Path(sys.env("APPDATA")) / "gcloud"
-      }
-    }
-    .getOrElse {
-      Path(sys.props.getOrElse("user.home", "")) / ".config" / "gcloud"
-    } / "application_default_credentials.json"
+private[gcp4s] object platform:
+  def env = sys.env
+  def home = Path(sys.props.getOrElse("user.home", ""))
+  def windows = sys.props.get("os.name").map(_.toLowerCase).exists(_.contains("windows"))

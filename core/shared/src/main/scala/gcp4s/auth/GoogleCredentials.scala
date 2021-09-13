@@ -83,6 +83,7 @@ object ApplicationDefaultCredentials:
     }
 
 object ServiceAccountCredentials:
+
   def apply[F[_]: Temporal](
       oauth2: GoogleOAuth2[F],
       projectId: String,
@@ -91,7 +92,31 @@ object ServiceAccountCredentials:
       scopes: Seq[String]): F[GoogleCredentials[F]] =
     OAuth2Credentials(projectId, oauth2.getAccessToken(clientEmail, privateKey, scopes))
 
-final private[auth] case class ServiceAccountCredentialsFile(
+  def apply[F[_]: Temporal](
+      oauth2: GoogleOAuth2[F],
+      projectId: String,
+      clientEmail: String,
+      privateKey: String,
+      scopes: Seq[String]): F[GoogleCredentials[F]] =
+    for
+      privateKey <- parseKey(privateKey).liftTo[F]
+      credentials <- OAuth2Credentials(
+        projectId,
+        oauth2.getAccessToken(clientEmail, privateKey, scopes))
+    yield credentials
+
+  private def parseKey(key: String): Either[Throwable, ByteVector] =
+    ByteVector
+      .fromBase64Descriptive(
+        key
+          .replaceAll("-----BEGIN (.*)-----", "")
+          .replaceAll("-----END (.*)-----", "")
+          .replaceAll("\r\n", "")
+          .replaceAll("\n", "")
+          .trim)
+      .leftMap(new RuntimeException(_))
+
+final case class ServiceAccountCredentialsFile(
     project_id: String,
     client_email: String,
     private_key: String)

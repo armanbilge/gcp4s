@@ -35,7 +35,7 @@ trait GoogleOAuth2[F[_]]:
       privateKey: ByteVector,
       scopes: Seq[String]): F[AccessToken]
 
-private[auth] object GoogleOAuth2:
+object GoogleOAuth2:
   def apply[F[_]: Temporal: Jwt](client: Client[F]): GoogleOAuth2[F] =
     new GoogleOAuth2:
       val endpoint = uri"https://oauth2.googleapis.com/token"
@@ -60,4 +60,4 @@ private[auth] object GoogleOAuth2:
         accessToken <- client.expect[AccessToken](request)
       yield accessToken
 
-  final case class JwtClaimContent(scope: String) derives Encoder.AsObject
+  final private case class JwtClaimContent(scope: String) derives Encoder.AsObject
