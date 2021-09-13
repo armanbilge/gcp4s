@@ -48,6 +48,9 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
   val endpoint = uri"https://bigquery.googleapis.com/bigquery/v2/"
   val mediaEndpoint = uri"https://bigquery.googleapis.com/upload/bigquery/v2/"
 
+  def projects: Stream[F, ProjectList] =
+    client.pageThrough(GET(endpoint / "projects"))
+
   extension (project: ProjectReference)
     def selfUri: Uri = endpoint / "projects" / project.projectId.getOrElse("")
     def mediaUri: Uri = mediaEndpoint / "projects" / project.projectId.getOrElse("")
@@ -272,6 +275,9 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
           case Right(right) => right
         }
         .through(queryResultsAs)
+
+  given Paginated[ProjectList] with
+    extension (pl: ProjectList) def pageToken = pl.nextPageToken
 
   given Paginated[DatasetList] with
     extension (dl: DatasetList) def pageToken = dl.nextPageToken
