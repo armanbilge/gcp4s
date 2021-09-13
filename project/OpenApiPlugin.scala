@@ -95,7 +95,6 @@ object OpenApiPlugin extends AutoPlugin {
             "_root_.scala.concurrent.duration.FiniteDuration"
           else
             "Long"
-        case "uint32" => "Long"
         case "uint64" => "BigInt"
         case "double" => "Double"
         case "byte" => "_root_.scodec.bits.ByteVector"
