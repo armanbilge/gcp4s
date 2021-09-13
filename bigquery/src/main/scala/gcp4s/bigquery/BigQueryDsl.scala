@@ -203,6 +203,8 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
     def selfUri: Uri = job.jobReference.get.selfUri
     def mediaUri: Uri = job.jobReference.get.mediaUri
 
+    def insert: F[Job] = client.expect(POST(job, selfUri))
+
     def upload: Pipe[F, Byte, Job] =
       if job.configuration.flatMap(_.load).isDefined then
         client.resumableUpload(
