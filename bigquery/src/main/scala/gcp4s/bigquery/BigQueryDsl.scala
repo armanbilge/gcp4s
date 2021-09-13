@@ -23,6 +23,7 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Temporal
 import cats.effect.std.Queue
 import cats.effect.std.Random
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Chunk
 import fs2.Pipe
@@ -239,15 +240,17 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
 
     def uploadsAs[A: Encoder.AsObject](rate: FiniteDuration = 1.minute)(
         using Temporal[F]): Pipe[F, A, Job] = in =>
-      Stream.eval((Ref.of(false), Queue.synchronous[F, Chunk[A]]).tupled).flatMap {
+      Stream.eval((Ref.of(false), Queue.synchronous[F, Option[Chunk[A]]]).tupled).flatMap {
         (done, queue) =>
           def go: Stream[F, Job] = Stream
-            .fromQueueUnterminatedChunk(queue)
-            .interruptAfter(rate)
+            .fromQueueNoneTerminatedChunk(queue)
+            .concurrently(Stream.eval(queue.offer(None).delayBy(rate)))
             .through(uploadAs[A]) ++ Stream.eval(done.get).flatMap { done =>
             if !done then go else Stream.empty
           }
-          (in.enqueueUnterminatedChunks(queue) ++ Stream.eval(done.set(true)).drain).merge(go)
+          (in.chunks.map(Some(_)).enqueueUnterminated(queue) ++ Stream
+            .eval(done.set(true))
+            .drain).merge(go)
       }
 
   extension (query: QueryRequest)
