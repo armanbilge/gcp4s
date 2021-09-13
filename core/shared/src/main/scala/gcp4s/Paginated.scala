@@ -30,14 +30,11 @@ trait Paginated[A]:
 extension [F[_]](client: Client[F])
   def pageThrough[A: Paginated](
       req: Request[F])(using MonadThrow[F], EntityDecoder[F, A]): Stream[F, A] =
-    val pageToken = "pageToken"
     req.method match
       case Method.GET =>
-        val initialPageToken = req.uri.query.pairs.find(_._1 == pageToken).flatMap(_._2)
-        val uri = req.uri.removeQueryParam(pageToken)
-        Stream.unfoldLoopEval(uri.withOptionQueryParam(pageToken, initialPageToken)) { uri =>
+        Stream.unfoldLoopEval(req.uri) { uri =>
           client.expect[A](req.withUri(uri)).map { a =>
-            (a, a.pageToken.map(uri.withQueryParam(pageToken, _)))
+            (a, a.pageToken.map(uri.withQueryParam("pageToken", _)))
           }
         }
       case _ =>

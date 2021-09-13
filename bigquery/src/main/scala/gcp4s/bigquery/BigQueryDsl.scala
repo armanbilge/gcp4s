@@ -155,12 +155,35 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
 
   extension (job: JobReference)
     def selfUri: Uri =
-      ProjectReference(job.projectId).selfUri / "jobs" / job.jobId.getOrElse("")
+      ProjectReference(job.projectId).selfUri / "jobs" / job
+        .jobId
+        .getOrElse("") +?? ("location" -> job.location)
     def mediaUri: Uri =
       ProjectReference(job.projectId).mediaUri / "jobs" / job.jobId.getOrElse("")
+    def queryUri: Uri =
+      ProjectReference(job.projectId).selfUri / "queries" / job
+        .jobId
+        .getOrElse("") +?? ("location" -> job.location)
 
     def get: F[Job] = client.expect(GET(selfUri))
     def cancel: F[Unit] = client.expect(POST(selfUri / "cancel"))
+
+    def getQueryResults(
+        maxResults: Option[Int] = None,
+        startIndex: Option[Long] = None,
+        timeoutMs: Option[FiniteDuration] = None
+    ): Stream[F, GetQueryResultsResponse] =
+      val req = GET(
+        queryUri +?? ("maxResults" -> maxResults) +?? ("startIndex" -> startIndex) +?? ("timeoutMs" -> timeoutMs))
+      Stream
+        .repeatEval(client.expect[GetQueryResultsResponse](req))
+        .dropWhile(!_.jobComplete.contains(true))
+        .head
+        .flatMap { head =>
+          Stream.emit(head) ++ Stream.fromOption(head.pageToken).flatMap { token =>
+            client.pageThrough(req.withUri(req.uri +? ("pageToken" -> token)))
+          }
+        }
 
   extension (job: Job)
     def selfUri: Uri = job.jobReference.get.selfUri
@@ -209,3 +232,6 @@ trait BigQueryDsl[F[_]: Concurrent](client: Client[F]) extends Http4sClientDsl[F
 
   given Paginated[QueryResponse] with
     extension (qr: QueryResponse) def pageToken = qr.pageToken
+
+  given Paginated[GetQueryResultsResponse] with
+    extension (gqrs: GetQueryResultsResponse) def pageToken = gqrs.pageToken
