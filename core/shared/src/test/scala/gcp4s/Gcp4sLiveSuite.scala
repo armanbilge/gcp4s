@@ -18,7 +18,6 @@ package gcp4s
 
 import cats.effect.IO
 import cats.effect.kernel.Deferred
-import cats.effect.std.Console
 import cats.effect.syntax.all.*
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
@@ -43,8 +42,8 @@ object Gcp4sLiveSuite:
     val resource = for
       ember <- EmberClientBuilder.default[IO].build
       // NEVER log in CI, the output could compromise SERVICE_ACCOUNT_CREDENTIALS
-      // .map(RequestLogger(true, false, redactHeadersWhen = _ => false))
-      // .map(ResponseLogger(false, false))
+      // .map(RequestLogger(false, false, logAction = Some(IO.println)))
+      // .map(ResponseLogger(false, false, logAction = Some(IO.println)))
       ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- IO
         .fromEither(
           parser.decode[ServiceAccountCredentialsFile](

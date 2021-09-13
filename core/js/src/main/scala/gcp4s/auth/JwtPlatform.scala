@@ -72,6 +72,7 @@ object SignOptions:
       .literal(
         algorithm = algorithm,
         audience = audience,
-        issuer = issuer
+        issuer = issuer,
+        expiresIn = expiresIn
       )
       .asInstanceOf[SignOptions]
