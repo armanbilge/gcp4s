@@ -65,9 +65,12 @@ object TableCellDecoder:
   private val F = ApplicativeThrow[Either[Throwable, *]]
 
   given TableCellDecoder[String] = viaString(Either.right)
+  given TableCellDecoder[Boolean] = viaString(s => F.catchNonFatal(s.toBoolean))
   given TableCellDecoder[Int] = viaString(s => F.catchNonFatal(s.toInt))
   given TableCellDecoder[Long] = viaString(s => F.catchNonFatal(s.toLong))
+  given TableCellDecoder[Float] = viaString(s => F.catchNonFatal(s.toFloat))
   given TableCellDecoder[Double] = viaString(s => F.catchNonFatal(s.toDouble))
+  given TableCellDecoder[BigDecimal] = viaString(s => F.catchNonFatal(BigDecimal(s)))
   given TableCellDecoder[ByteVector] = viaString(
     ByteVector.fromBase64Descriptive(_).leftMap(new RuntimeException(_)))
 
@@ -81,7 +84,7 @@ object TableCellDecoder:
   given [A](using d: TableCellDecoder[A]): TableCellDecoder[Option[A]] with
     def decode(cell: TableCell) =
       cell.v match
-        case Some(Json.Null) => Right(None)
+        case None | Some(Json.Null) => Right(None)
         case _ => d.decode(cell).map(_.some)
 
   given [A](using d: TableCellDecoder[A]): TableCellDecoder[Vector[A]] with

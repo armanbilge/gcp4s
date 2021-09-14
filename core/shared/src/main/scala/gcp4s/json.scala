@@ -32,6 +32,9 @@ private[gcp4s] object json:
   given Decoder[BigInt] = Decoder.decodeString.emapTry(s => Try(BigInt(s)))
   given Encoder[BigInt] = Encoder.encodeString.contramap(_.toString)
 
+  given Decoder[BigDecimal] = Decoder.decodeString.emapTry(s => Try(BigDecimal(s)))
+  given Encoder[BigDecimal] = Encoder.encodeString.contramap(_.toString)
+
   given (using d: Decoder[Long]): Decoder[FiniteDuration] = d.map(_.milliseconds)
   given (using e: Encoder[Long]): Encoder[FiniteDuration] = e.contramap(_.toMillis)
 

@@ -61,26 +61,35 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
 
     def datasets(
         all: Option[Boolean] = None,
-        filter: Option[Map[String, String]]): Stream[F, DatasetList] =
-      client.pageThrough(GET(selfUri / "datasets" +?? ("all" -> all) +?? ("filter" -> filter)))
+        filter: Option[Map[String, String]] = None): Stream[F, DatasetListDataset] =
+      for
+        list <- client.pageThrough[DatasetList](
+          GET(selfUri / "datasets" +?? ("all" -> all) +?? ("filter" -> filter)))
+        datasets <- Stream.fromOption(list.datasets)
+        dataset <- Stream.emits(datasets)
+      yield dataset
 
     def jobs(
         allUsers: Option[Boolean] = None,
-        maxCreationTime: Option[FiniteDuration],
-        minCreationTime: Option[FiniteDuration],
-        parentJobId: Option[JobReference],
-        projection: Option["full" | "minimal"],
-        stateFilter: Option[List["done" | "pending" | "running"]]
-    ): Stream[F, JobList] =
-      client.pageThrough(
-        GET(
-          selfUri / "jobs" +?? ("allUsers" -> allUsers) +?? ("maxCreationTime" -> maxCreationTime) +?? ("minCreationTime" -> minCreationTime) +?? ("parentJobId" -> parentJobId
-            .flatMap(_.jobId)) +?? ("projection" -> projection
-            .widen[String]) ++? ("stateFilter" -> stateFilter
-            .widen[Seq[String]]
-            .getOrElse(Seq.empty))
+        maxCreationTime: Option[FiniteDuration] = None,
+        minCreationTime: Option[FiniteDuration] = None,
+        parentJobId: Option[JobReference] = None,
+        projection: Option["full" | "minimal"] = None,
+        stateFilter: Option[List["done" | "pending" | "running"]] = None
+    ): Stream[F, JobListJob] =
+      for
+        list <- client.pageThrough[JobList](
+          GET(
+            selfUri / "jobs" +?? ("allUsers" -> allUsers) +?? ("maxCreationTime" -> maxCreationTime) +?? ("minCreationTime" -> minCreationTime) +?? ("parentJobId" -> parentJobId
+              .flatMap(_.jobId)) +?? ("projection" -> projection
+              .widen[String]) ++? ("stateFilter" -> stateFilter
+              .widen[Seq[String]]
+              .getOrElse(Seq.empty))
+          )
         )
-      )
+        jobs <- Stream.fromOption(list.jobs)
+        job <- Stream.emits(jobs)
+      yield job
 
   extension (dataset: DatasetReference)
     def selfUri: Uri =
@@ -89,25 +98,32 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
     def get: F[Dataset] = client.expect(GET(selfUri))
     def delete(deleteContents: Option[Boolean] = None): F[Unit] = client.expect(DELETE(selfUri))
 
+    def tables: Stream[F, TableListTable] =
+      for
+        list <- client.pageThrough[TableList](GET(selfUri / "tables"))
+        tables <- Stream.fromOption(list.tables)
+        table <- Stream.emits(tables)
+      yield table
+
   extension (dataset: Dataset)
     def selfUri: Uri = dataset.datasetReference.get.selfUri
+    def insertUri = dataset.datasetReference.get.copy(datasetId = None).selfUri
 
-    def insert: F[Dataset] = client.expect(POST(dataset, selfUri))
+    def insert: F[Dataset] = client.expect(POST(dataset, insertUri))
     def patch: F[Dataset] = client.expect(PATCH(dataset, selfUri))
     def update: F[Dataset] = client.expect(PUT(dataset, selfUri))
 
-    def tables: Stream[F, TableList] = client.pageThrough(GET(selfUri / "tables"))
-
   extension (table: TableReference)
     def selfUri: Uri =
-      DatasetReference(table.projectId, table.datasetId).selfUri / "tables" / table
-        .tableId
-        .getOrElse("")
+      DatasetReference(
+        projectId = table.projectId,
+        datasetId = table.datasetId).selfUri / "tables" / table.tableId.getOrElse("")
 
     def get: F[Table] = client.expect(GET(selfUri))
     def delete: F[Unit] = client.expect(DELETE(selfUri))
+    def data: TableData = new TableData(table)
 
-  final class TableData private (table: TableReference):
+  final class TableData private[bigquery] (table: TableReference):
     def selfUri: Uri = table.selfUri / "data"
 
     def list(
@@ -156,8 +172,9 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
 
   extension (table: Table)
     def selfUri: Uri = table.tableReference.get.selfUri
+    def insertUri = table.tableReference.get.copy(tableId = None).selfUri
 
-    def insert: F[Table] = client.expect(POST(table, selfUri))
+    def insert: F[Table] = client.expect(POST(table, insertUri))
     def patch: F[Table] = client.expect(PATCH(table, selfUri))
     def update: F[Table] = client.expect(PUT(table, selfUri))
 
@@ -174,7 +191,7 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
         .getOrElse("") +?? ("location" -> job.location)
 
     def get: F[Job] = client.expect(GET(selfUri))
-    def cancel: F[Unit] = client.expect(POST(selfUri / "cancel"))
+    def cancel: F[JobCancelResponse] = client.expect(POST(selfUri / "cancel"))
 
     def getQueryResults(
         maxResults: Option[Long] = None,
@@ -270,7 +287,7 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
                 query.timeoutMs
               )
             yield Right(results)
-        tail.cons1(Left(head)).onFinalize(head.jobReference.fold(F.unit)(_.cancel))
+        tail.cons1(Left(head)).onFinalize(head.jobReference.fold(F.unit)(_.cancel.void))
       }
 
     def runAs[A: TableRowDecoder](projectId: String): Stream[F, A] =

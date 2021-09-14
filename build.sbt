@@ -42,6 +42,9 @@ val commonSettings = Seq(
   sonatypeCredentialHost := "s01.oss.sonatype.org"
 )
 
+val commonJVMSettings = Seq(
+  fork := true
+)
 val commonJSSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
   useYarn := true,
@@ -82,6 +85,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
     )
   )
   .settings(commonSettings)
+  .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
 
 lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
@@ -97,5 +101,6 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
     )
   )
   .settings(commonSettings)
+  .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
   .dependsOn(core % "compile->compile;test->test")
