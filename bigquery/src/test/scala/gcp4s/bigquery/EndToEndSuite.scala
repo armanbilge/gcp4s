@@ -137,8 +137,7 @@ class EndToEndSuite extends Gcp4sLiveSuite {
         )
         _ <- Stream
           .emits(rows)
-          // .through(loadJob.uploadsAs())
-          .through(loadJob.uploadAs)
+          .through(loadJob.uploadsAs())
           .flatMap { job =>
             Stream
               .fromOption(job.jobReference)

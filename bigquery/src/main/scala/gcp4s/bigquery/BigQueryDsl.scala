@@ -262,12 +262,11 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
           def go: Stream[F, Job] = Stream
             .fromQueueNoneTerminatedChunk(queue)
             .concurrently(Stream.eval(queue.offer(None).delayBy(rate)))
-            .through(uploadAs[A]) ++ Stream.eval(done.get).flatMap { done =>
-            if !done then go else Stream.empty
+            .through(uploadAs[A]) ++ Stream.eval(done.get.product(queue.size)).flatMap {
+            (done, size) => if !done | size > 0 then go else Stream.empty
           }
-          (in.chunks.map(Some(_)).enqueueUnterminated(queue) ++ Stream
-            .eval(done.set(true))
-            .drain).merge(go)
+          (in.chunks.enqueueNoneTerminated(queue) ++ Stream.eval(done.set(true)).drain)
+            .merge(go)
       }
 
   extension (query: QueryRequest)

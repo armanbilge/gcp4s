@@ -70,6 +70,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test,
+      "org.http4s" %%% "http4s-dsl" % Http4sVersion % Test,
       "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test
     )
   )
