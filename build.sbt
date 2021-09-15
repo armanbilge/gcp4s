@@ -92,10 +92,10 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
 lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("bigquery"))
-  .enablePlugins(OpenApiPlugin)
+  .enablePlugins(DiscoveryPlugin)
   .jsEnablePlugins(ScalaJSBundlerPlugin)
   .settings(
-    openApiPackage := "gcp4s.bigquery",
+    discoveryPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
       "dev.optics" %%% "monocle-core" % MonocleVersion

@@ -3,54 +3,49 @@ import cats.syntax.all._
 import cats.instances.list._
 import io.circe._
 import io.circe.generic.auto._
-import io.circe.yaml.parser._
 import sbt.Keys._
 import sbt._
 import cats.Traverse
 import org.jboss.dna.common.text.Inflector
 
-object OpenApiPlugin extends AutoPlugin {
+object DiscoveryPlugin extends AutoPlugin {
 
   override def trigger = noTrigger
 
   object autoImport extends scala.AnyRef {
-    lazy val openApiGenerate =
-      taskKey[Unit]("Generate Scala case class for the given OpenApi model")
-    lazy val openApiPackage = settingKey[String]("Package for generated sources")
-    lazy val openApiComponents = settingKey[Seq[String]]("Components to generate sources for")
-    lazy val openApiImports = settingKey[Seq[String]]("Additional imports")
+    lazy val discoveryGenerate =
+      taskKey[Unit]("Generate Scala case classes for the given Discovery Document")
+    lazy val discoveryPackage = settingKey[String]("Package for generated sources")
   }
   import autoImport._
 
   override val projectSettings = Seq(
-    openApiGenerate := openApiTask.value,
-    Compile / sourceGenerators += openApiTask.taskValue
+    discoveryGenerate := discoveryTask.value,
+    Compile / sourceGenerators += discoveryTask.taskValue
   )
 
-  lazy val openApiTask: Def.Initialize[Task[Seq[File]]] = Def.task {
+  lazy val discoveryTask: Def.Initialize[Task[Seq[File]]] = Def.task {
     val f = (Compile / sourceDirectories)
       .value
-      .map(_.getParentFile / "openapi" / "openapi.yaml")
+      .map(_.getParentFile / "discovery" / "discovery.json")
       .find(_.exists())
       .get
-    val yaml = parse(IO.read(f)).fold(throw _, identity)
-    val api = yaml.as[openapi.OpenApi].fold(throw _, identity)
+    val discovery = parser.decode[Discovery](IO.read(f)).fold(throw _, identity)
 
-    val models = api
-      .components
+    val models = discovery
       .schemas
       .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
       .toList
       .flatMap {
         case (name, schema) =>
-          mkComponent(name, schema)
+          mkSchema(name, schema)
       }
       .map { caseClass =>
         val f =
-          (Compile / sourceManaged).value / "openapi" / "model" / s"${caseClass.name}.scala"
+          (Compile / sourceManaged).value / "discovery" / "model" / s"${caseClass.name}.scala"
         IO.write(
           f,
-          s"""|package ${openApiPackage.value}.model
+          s"""|package ${discoveryPackage.value}.model
               |
               |import _root_.gcp4s.json.given
               |
@@ -63,11 +58,10 @@ object OpenApiPlugin extends AutoPlugin {
     models
   }
 
-  def mkComponent(name: String, component: openapi.ComponentSchema): List[CaseClass] = {
+  def mkSchema(name: String, schema: Schema): List[CaseClass] = {
     type F[A] = Writer[List[CaseClass], A]
     Traverse[List]
-      .traverse[F, (String, openapi.Property), Parameter](
-        component.properties.toList.flatMap(_.toList)) {
+      .traverse[F, (String, Schema), Parameter](schema.properties.toList.flatMap(_.toList)) {
         case (propertyName, property) =>
           mkProperty(name, propertyName, property)
       }
@@ -78,13 +72,13 @@ object OpenApiPlugin extends AutoPlugin {
   def mkProperty(
       parentName: String,
       name: String,
-      property: openapi.Property): Writer[List[CaseClass], Parameter] =
+      property: Schema): Writer[List[CaseClass], Parameter] =
     mkPropertyType(parentName, name, property).map { t => Parameter(name, t, required = false) }
 
   def mkPropertyType(
       parentName: String,
       name: String,
-      property: openapi.Property): Writer[List[CaseClass], String] = {
+      property: Schema): Writer[List[CaseClass], String] = {
 
     val primitive = property
       .format
@@ -135,12 +129,10 @@ object OpenApiPlugin extends AutoPlugin {
         property
           .properties
           .map { p =>
-            val componentName = s"$parentName${name.capitalize}"
+            val schemaName = s"$parentName${name.capitalize}"
             Writer(
-              mkComponent(
-                componentName,
-                openapi.ComponentSchema(property.description, Some(p))),
-              componentName
+              mkSchema(schemaName, Schema(properties = Some(p))),
+              schemaName
             )
           }
           .orElse(property.additionalProperties.map { p =>
