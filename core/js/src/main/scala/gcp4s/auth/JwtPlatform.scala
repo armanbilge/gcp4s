@@ -16,63 +16,59 @@
 
 package gcp4s.auth
 
-import cats.effect.kernel.Async
+import cats.MonadThrow
+import cats.effect.kernel.Clock
 import cats.syntax.all.*
+import io.circe.Codec
 import io.circe.Encoder
-import io.circe.scalajs.*
+import io.circe.Json
+import io.circe.syntax.*
 import scodec.bits.ByteVector
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
+import scala.scalajs.js.typedarray.Uint8Array
 
 abstract private[auth] class JwtCompanionPlatform:
-  given [F[_]](using F: Async[F]): Jwt[F] with
-    def sign[A: Encoder](
+  given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] with
+    final case class Header(alg: String = "RS256", typ: String = "JWT") derives Codec.AsObject
+    val header = ByteVector.encodeAscii(Header().asJson.noSpaces).toOption.get.toBase64UrlNoPad
+
+    final case class Claim(iss: String, aud: String, exp: Long, iat: Long)
+        derives Codec.AsObject
+
+    def sign[A: Encoder.AsObject](
         payload: A,
         audience: String,
         issuer: String,
         expiresIn: FiniteDuration,
         privateKey: ByteVector
     ): F[String] =
-      val key =
-        s"-----BEGIN PRIVATE KEY-----\n${privateKey.toBase64}\n-----END PRIVATE KEY-----"
-      F.async_ { cb =>
-        jsonwebtoken.sign(
-          payload.asJsAny,
-          key,
-          SignOptions("RS256", audience, issuer, expiresIn.toSeconds.toDouble),
-          (err, signed) => cb(signed.toRight(js.JavaScriptException(err)))
-        )
+      for
+        iat <- Clock[F].realTime
+        claim = Claim(issuer, audience, (iat + expiresIn).toSeconds, iat.toSeconds)
+        json = payload.asJsonObject.deepMerge(claim.asJsonObject).asJson
+        claim <- ByteVector.encodeAscii(json.noSpaces).liftTo[F].map(_.toBase64UrlNoPad)
+        headerClaim <- ByteVector.encodeAscii(s"$header.$claim").liftTo[F]
+        key <- F.catchNonFatal(crypto.createPrivateKey(new {
+          val key = privateKey.toUint8Array
+          val format = "der"
+          val `type` = "pkcs8"
+        }))
+        signature <- F.catchNonFatal(crypto.sign("SHA256", headerClaim.toUint8Array, key))
+        sig = ByteVector.view(signature).toBase64UrlNoPad
+      yield s"$header.$claim.$sig"
 
-      }
-
-private[auth] object jsonwebtoken:
-
-  @js.native
-  @JSImport("jsonwebtoken", "sign")
-  def sign(
-      payload: js.Any,
-      secretOrPrivateKey: String,
-      options: SignOptions,
-      callback: SignCallback): Unit = js.native
-
-private[auth] type SignCallback = js.Function2[js.Error, js.UndefOr[String], Unit]
-
+@JSImport("crypto", JSImport.Default)
 @js.native
-private[auth] trait SignOptions extends js.Any
-object SignOptions:
-  def apply(
-      algorithm: "RS256",
-      audience: String,
-      issuer: String,
-      expiresIn: Double): SignOptions =
-    js.Dynamic
-      .literal(
-        algorithm = algorithm,
-        audience = audience,
-        issuer = issuer,
-        expiresIn = expiresIn
-      )
-      .asInstanceOf[SignOptions]
+private[auth] object crypto extends js.Object:
+  def sign(algorithm: "SHA256", data: Uint8Array, key: KeyObject): Uint8Array = js.native
+  def createPrivateKey(key: Key): KeyObject = js.native
+
+private[auth] trait KeyObject extends js.Object
+
+private[auth] trait Key extends js.Object:
+  val key: Uint8Array
+  val format: "der"
+  val `type`: "pkcs8"

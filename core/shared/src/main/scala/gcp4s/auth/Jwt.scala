@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
 import scodec.bits.ByteVector
 
 trait Jwt[F[_]]:
-  def sign[A: Encoder](
+  def sign[A: Encoder.AsObject](
       payload: A,
       audience: String,
       issuer: String,

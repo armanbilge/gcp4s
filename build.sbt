@@ -34,6 +34,7 @@ val MonocleVersion = "3.1.0"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
+val ScodecBitsVersion = "1.1.28"
 val ShapelessVersion = "3.0.2"
 
 val commonSettings = Seq(
@@ -46,9 +47,7 @@ val commonJVMSettings = Seq(
   fork := true
 )
 val commonJSSettings = Seq(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
-  useYarn := true,
-  yarnExtraArgs += "--frozen-lockfile"
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
 lazy val root =
@@ -56,7 +55,6 @@ lazy val root =
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .settings(
     name := "gcp4s",
     libraryDependencies ++= Seq(
@@ -67,6 +65,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
       "io.circe" %%% "circe-parser" % CirceVersion,
       "io.circe" %%% "circe-scodec" % CirceVersion,
+      "org.scodec" %%% "scodec-bits" % ScodecBitsVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
       "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test,
@@ -80,11 +79,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "ch.qos.logback" % "logback-classic" % "1.2.6" % Test
     )
   )
-  .jsSettings(
-    Compile / npmDependencies ++= Seq(
-      "jsonwebtoken" -> "8.5.1"
-    )
-  )
   .settings(commonSettings)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
@@ -93,7 +87,6 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("bigquery"))
   .enablePlugins(DiscoveryPlugin)
-  .jsEnablePlugins(ScalaJSBundlerPlugin)
   .settings(
     discoveryPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(

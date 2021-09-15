@@ -32,7 +32,7 @@ import java.security.spec.PKCS8EncodedKeySpec
 
 abstract private[auth] class JwtCompanionPlatform:
   given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] with
-    def sign[A: Encoder](
+    def sign[A: Encoder.AsObject](
         payload: A,
         audience: String,
         issuer: String,
