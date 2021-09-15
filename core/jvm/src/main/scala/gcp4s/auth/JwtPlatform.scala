@@ -18,39 +18,22 @@ package gcp4s.auth
 
 import cats.MonadThrow
 import cats.effect.kernel.Clock
-import cats.syntax.all.given
-import io.circe.Encoder
-import io.circe.syntax.given
-import pdi.jwt.JwtClaim
-import pdi.jwt.JwtCirce
-import pdi.jwt.JwtAlgorithm.RS256
-import scala.concurrent.duration.*
+import cats.syntax.all.*
 import scodec.bits.ByteVector
-import cats.ApplicativeThrow
 import java.security.KeyFactory
 import java.security.spec.PKCS8EncodedKeySpec
+import java.security.Signature
 
 abstract private[auth] class JwtCompanionPlatform:
-  given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] with
-    def sign[A: Encoder.AsObject](
-        payload: A,
-        audience: String,
-        issuer: String,
-        expiresIn: FiniteDuration,
-        privateKey: ByteVector
-    ): F[String] =
-      val claim = JwtClaim(
-        content = payload.asJson.noSpaces,
-        audience = Some(Set(audience)),
-        issuer = Some(issuer))
-
-      val keyFactory = KeyFactory.getInstance("RSA")
-
-      for
-        key <- F.catchNonFatal {
+  given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] =
+    new UnsealedJwt:
+      def sign(data: ByteVector, privateKey: ByteVector): F[ByteVector] =
+        F.catchNonFatal {
+          val keyFactory = KeyFactory.getInstance("RSA")
           val spec = new PKCS8EncodedKeySpec(privateKey.toArray)
           keyFactory.generatePrivate(spec)
+          val signer = Signature.getInstance("SHA256withRSA")
+          signer.initSign(keyFactory.generatePrivate(spec))
+          signer.update(data.toByteBuffer)
+          ByteVector.view(signer.sign)
         }
-        now <- Clock[F].realTime
-        issued = claim.expiresAt((now + 1.hour).toSeconds).issuedAt(now.toSeconds)
-      yield JwtCirce.encode(issued, key, RS256)

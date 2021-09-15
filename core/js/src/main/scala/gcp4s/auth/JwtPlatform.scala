@@ -19,46 +19,24 @@ package gcp4s.auth
 import cats.MonadThrow
 import cats.effect.kernel.Clock
 import cats.syntax.all.*
-import io.circe.Codec
-import io.circe.Encoder
-import io.circe.Json
-import io.circe.syntax.*
 import scodec.bits.ByteVector
 
-import scala.concurrent.duration.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 import scala.scalajs.js.typedarray.Uint8Array
 
 abstract private[auth] class JwtCompanionPlatform:
-  given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] with
-    final case class Header(alg: String = "RS256", typ: String = "JWT") derives Codec.AsObject
-    val header = ByteVector.encodeAscii(Header().asJson.noSpaces).toOption.get.toBase64UrlNoPad
-
-    final case class Claim(iss: String, aud: String, exp: Long, iat: Long)
-        derives Codec.AsObject
-
-    def sign[A: Encoder.AsObject](
-        payload: A,
-        audience: String,
-        issuer: String,
-        expiresIn: FiniteDuration,
-        privateKey: ByteVector
-    ): F[String] =
-      for
-        iat <- Clock[F].realTime
-        claim = Claim(issuer, audience, (iat + expiresIn).toSeconds, iat.toSeconds)
-        json = payload.asJsonObject.deepMerge(claim.asJsonObject).asJson
-        claim <- ByteVector.encodeAscii(json.noSpaces).liftTo[F].map(_.toBase64UrlNoPad)
-        headerClaim <- ByteVector.encodeAscii(s"$header.$claim").liftTo[F]
-        key <- F.catchNonFatal(crypto.createPrivateKey(new {
-          val key = privateKey.toUint8Array
-          val format = "der"
-          val `type` = "pkcs8"
-        }))
-        signature <- F.catchNonFatal(crypto.sign("SHA256", headerClaim.toUint8Array, key))
-        sig = ByteVector.view(signature).toBase64UrlNoPad
-      yield s"$header.$claim.$sig"
+  given [F[_]: Clock](using F: MonadThrow[F]): Jwt[F] =
+    new UnsealedJwt[F]:
+      def sign(data: ByteVector, privateKey: ByteVector): F[ByteVector] =
+        F.catchNonFatal {
+          val key = crypto.createPrivateKey(new {
+            val key = privateKey.toUint8Array
+            val format = "der"
+            val `type` = "pkcs8"
+          })
+          ByteVector.view(crypto.sign("SHA256", data.toUint8Array, key))
+        }
 
 @JSImport("crypto", JSImport.Default)
 @js.native

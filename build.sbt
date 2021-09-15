@@ -75,7 +75,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "com.github.jwt-scala" %%% "jwt-circe" % "9.0.1",
       "ch.qos.logback" % "logback-classic" % "1.2.6" % Test
     )
   )
