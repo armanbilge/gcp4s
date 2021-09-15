@@ -24,9 +24,9 @@ import cats.syntax.all.given
 import scala.concurrent.duration.*
 import org.http4s.Credentials
 
-class GoogleCredentialsSuite extends CatsEffectSuite with ScalaCheckEffectSuite:
+class GoogleCredentialsSuite extends CatsEffectSuite, ScalaCheckEffectSuite, Gcp4sLiveSuite:
 
-  test("GoogleOAuth2Credentials should queue requests until token arrives, then respond") {
+  test("queue requests until token arrives, then respond") {
     PropF.forAllF { (x: List[Unit]) =>
       for
         deferred <- IO.deferred[AccessToken]
@@ -37,4 +37,8 @@ class GoogleCredentialsSuite extends CatsEffectSuite with ScalaCheckEffectSuite:
         requests <- x.parTraverse(_ => credentials.get)
       yield assert(requests.size == x.size)
     }
+  }
+
+  test("successfully obtain a live access token") {
+    googleCredentials.flatMap(_.get)
   }
