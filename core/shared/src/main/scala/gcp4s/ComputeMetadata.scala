@@ -16,7 +16,8 @@
 
 package gcp4s
 
-import cats.effect.kernel.Temporal
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Concurrent
 import gcp4s.auth.AccessToken
 import org.http4s.Header
 import org.http4s.Headers
@@ -38,7 +39,7 @@ trait ComputeMetadata[F[_]]:
 
 object ComputeMetadata:
 
-  def apply[F[_]: Temporal](client: Client[F]): ComputeMetadata[F] =
+  def apply[F[_]: Concurrent: Clock](client: Client[F]): ComputeMetadata[F] =
     new ComputeMetadata[F]:
       val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
       val headers = Headers(`Metadata-Flavor`)

@@ -16,7 +16,8 @@
 
 package gcp4s.auth
 
-import cats.effect.kernel.Temporal
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 import io.circe.Encoder
 import org.http4s.Method.POST
@@ -38,7 +39,7 @@ trait GoogleOAuth2[F[_]]:
       scopes: Seq[String]): F[AccessToken]
 
 object GoogleOAuth2:
-  def apply[F[_]: Temporal: Jwt](client: Client[F]): GoogleOAuth2[F] =
+  def apply[F[_]: Concurrent: Clock: Jwt](client: Client[F]): GoogleOAuth2[F] =
     new GoogleOAuth2 with Http4sClientDsl[F]:
       val endpoint = uri"https://oauth2.googleapis.com/token"
       def getAccessToken(

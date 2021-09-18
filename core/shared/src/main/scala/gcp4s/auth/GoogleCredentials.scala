@@ -20,10 +20,8 @@ package auth
 import cats.data.NonEmptyList
 import cats.data.OptionT
 import cats.effect.kernel.Clock
-import cats.effect.kernel.Deferred
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.MonadCancelThrow
-import cats.effect.kernel.Temporal
-import cats.effect.std.Semaphore
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.CompositeFailure
@@ -53,8 +51,8 @@ trait GoogleCredentials[F[_]]:
       }
 
 object ApplicationDefaultCredentials:
-  def apply[F[_]: Files: Jwt](client: Client[F], scopes: Seq[String])(
-      using F: Temporal[F]): F[GoogleCredentials[F]] =
+  def apply[F[_]: Clock: Files: Jwt](client: Client[F], scopes: Seq[String])(
+      using F: Concurrent[F]): F[GoogleCredentials[F]] =
     val serviceAccountCredentials =
       for
         json <- Files[F]
@@ -84,7 +82,7 @@ object ApplicationDefaultCredentials:
 
 object ServiceAccountCredentials:
 
-  def apply[F[_]: Temporal](
+  def apply[F[_]: Concurrent: Clock](
       oauth2: GoogleOAuth2[F],
       projectId: String,
       clientEmail: String,
@@ -92,7 +90,7 @@ object ServiceAccountCredentials:
       scopes: Seq[String]): F[GoogleCredentials[F]] =
     OAuth2Credentials(projectId, oauth2.getAccessToken(clientEmail, privateKey, scopes))
 
-  def apply[F[_]: Temporal](
+  def apply[F[_]: Concurrent: Clock](
       oauth2: GoogleOAuth2[F],
       projectId: String,
       clientEmail: String,
@@ -123,15 +121,15 @@ final case class ServiceAccountCredentialsFile(
     derives Decoder
 
 object ComputeEngineCredentials:
-  def apply[F[_]: Temporal](metadata: ComputeMetadata[F]): F[GoogleCredentials[F]] =
+  def apply[F[_]: Concurrent: Clock](metadata: ComputeMetadata[F]): F[GoogleCredentials[F]] =
     for
       projectId <- metadata.getProjectId
       credentials <- OAuth2Credentials(projectId, metadata.getAccessToken)
     yield credentials
 
 object OAuth2Credentials:
-  private[auth] def apply[F[_]](pid: String, refresh: F[AccessToken])(
-      using F: Temporal[F]): F[GoogleCredentials[F]] = for
+  private[auth] def apply[F[_]: Clock](pid: String, refresh: F[AccessToken])(
+      using F: Concurrent[F]): F[GoogleCredentials[F]] = for
     token <- F.ref(Option.empty[F[AccessToken]])
   yield new GoogleCredentials[F]:
     val projectId = pid

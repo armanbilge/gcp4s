@@ -19,7 +19,7 @@ package gcp4s.auth
 import cats.Functor
 import cats.data.EitherT
 import cats.effect.kernel.Clock
-import cats.effect.kernel.Temporal
+import cats.effect.kernel.Concurrent
 import cats.syntax.all.*
 import io.circe.Decoder
 import org.http4s.EntityDecoder
@@ -35,10 +35,10 @@ final case class AccessToken(
     Clock[F].realTime.map { now => expiresAt < now + in }
 
 object AccessToken:
-  given [F[_]: Temporal]: EntityDecoder[F, AccessToken] =
+  given [F[_]: Concurrent: Clock]: EntityDecoder[F, AccessToken] =
     jsonOf[F, AccessTokenResponse].flatMapR {
       case AccessTokenResponse(access_token, token_type, expires_in) =>
-        EitherT.liftF(Temporal[F].realTime.map { now =>
+        EitherT.liftF(Clock[F].realTime.map { now =>
           AccessToken(access_token, now + expires_in.seconds)
         })
     }
