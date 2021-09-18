@@ -25,7 +25,7 @@ import scodec.bits.ByteVector
 import scala.concurrent.duration.*
 import scala.util.Try
 
-private[gcp4s] object json:
+object json:
   given Decoder[Long] = Decoder.decodeString.emapTry(s => Try(s.toLong)).or(Decoder.decodeLong)
   given Encoder[Long] = Encoder.encodeString.contramap(_.toString)
 
