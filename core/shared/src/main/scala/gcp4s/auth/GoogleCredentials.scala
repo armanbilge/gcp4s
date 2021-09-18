@@ -132,7 +132,7 @@ object ComputeEngineCredentials:
 object OAuth2Credentials:
   private[auth] def apply[F[_]](pid: String, refresh: F[AccessToken])(
       using F: Temporal[F]): F[GoogleCredentials[F]] = for
-    token <- F.ref(Option.empty[Deferred[F, Either[Throwable, AccessToken]]])
+    token <- F.ref(Option.empty[F[AccessToken]])
   yield new GoogleCredentials[F]:
     val projectId = pid
 
@@ -140,17 +140,17 @@ object OAuth2Credentials:
     yield Credentials.Token(AuthScheme.Bearer, token)
 
     def getToken: F[AccessToken] = OptionT(token.get)
-      .semiflatMap(_.get.rethrow)
+      .semiflatMap(identity)
       .flatMapF { token =>
         for expired <- token.expiresSoon()
         yield Option.unless(expired)(token)
       }
       .getOrElseF {
         for
-          deferred <- F.deferred[Either[Throwable, AccessToken]]
-          refreshing <- token.tryUpdate(_ => Some(deferred))
+          memo <- F.memoize(refresh)
+          updated <- token.tryUpdate(_ => Some(memo))
           token <-
-            if refreshing then refresh.attempt.flatTap(deferred.complete).rethrow
+            if updated then memo
             else getToken
         yield token
       }
