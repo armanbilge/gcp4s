@@ -35,7 +35,7 @@ val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.5"
 val ScalaCheckEffectMunitVersion = "1.0.2"
 val ScodecBitsVersion = "1.1.28"
-val ShapelessVersion = "3.0.2"
+val ShapelessVersion = "3.0.3"
 
 val commonSettings = Seq(
   scalacOptions ++=
