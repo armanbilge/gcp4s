@@ -33,7 +33,7 @@ val CirceVersion = "0.15.0-M1"
 val MonocleVersion = "3.1.0"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.6"
-val ScalaCheckEffectMunitVersion = "1.0.2"
+val ScalaCheckEffectMunitVersion = "1.0.3"
 val ScodecBitsVersion = "1.1.29"
 val ShapelessVersion = "3.0.3"
 
