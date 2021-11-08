@@ -17,12 +17,14 @@
 package gcp4s
 package auth
 
-import munit.{CatsEffectSuite, ScalaCheckEffectSuite}
-import org.scalacheck.effect.PropF
 import cats.effect.IO
-import cats.syntax.all.given
-import scala.concurrent.duration.*
+import cats.syntax.all.*
+import munit.CatsEffectSuite
+import munit.ScalaCheckEffectSuite
 import org.http4s.Credentials
+import org.scalacheck.effect.PropF
+
+import scala.concurrent.duration.*
 
 class GoogleCredentialsSuite extends CatsEffectSuite, ScalaCheckEffectSuite, Gcp4sLiveSuite:
 
