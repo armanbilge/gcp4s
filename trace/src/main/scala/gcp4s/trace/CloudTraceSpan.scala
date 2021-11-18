@@ -16,8 +16,6 @@
 
 package gcp4s.trace
 
-import natchez.EntryPoint
-import org.http4s.client.Client
+final private class CloudTraceSpan[F[_]]
 
-object CloudTrace:
-  def entryPoint[F[_]](client: Client[F]): EntryPoint[F] = ???
+private object CloudTraceSpan
