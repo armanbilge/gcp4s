@@ -25,7 +25,7 @@ addCommandAlias("prePR", "; root/clean; +root/scalafmtAll; scalafmtSbt; +root/he
 val Scala3 = "3.1.0"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
-val CatsVersion = "2.6.1"
+val CatsVersion = "2.7.0"
 val CatsEffectVersion = "3.2.9"
 val Fs2Version = "3.2.2"
 val Http4sVersion = "0.23.6"
