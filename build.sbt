@@ -108,7 +108,7 @@ lazy val trace = crossProject(JVMPlatform, JSPlatform)
     name := "gcp4s-trace",
     discoveryPackage := "gcp4s.trace",
     libraryDependencies ++= Seq(
-      "org.tpolecat" %%% "natchez-core" % NatchezVersion,
+      "org.tpolecat" %%% "natchez-core" % NatchezVersion
     )
   )
   .settings(commonSettings)
