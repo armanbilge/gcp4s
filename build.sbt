@@ -25,17 +25,17 @@ addCommandAlias("prePR", "; root/clean; +root/scalafmtAll; scalafmtSbt; +root/he
 val Scala3 = "3.1.0"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
-val CatsVersion = "2.6.1"
-val CatsEffectVersion = "3.2.9"
-val Fs2Version = "3.2.2"
-val Http4sVersion = "0.23.6"
+val CatsVersion = "2.7.0"
+val CatsEffectVersion = "3.3.0"
+val Fs2Version = "3.2.3"
+val Http4sVersion = "0.23.7"
 val CirceVersion = "0.15.0-M1"
 val MonocleVersion = "3.1.0"
 val MunitVersion = "0.7.29"
-val MunitCE3Version = "1.0.6"
-val NatchezVersion = "0.1.5"
+val MunitCE3Version = "1.0.7"
+val NatchezVersion = "0.1.6"
 val ScalaCheckEffectMunitVersion = "1.0.3"
-val ScodecBitsVersion = "1.1.29"
+val ScodecBitsVersion = "1.1.30"
 val ShapelessVersion = "3.0.4"
 
 val commonSettings = Seq(
@@ -76,7 +76,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.7" % Test
+      "ch.qos.logback" % "logback-classic" % "1.2.9" % Test
     )
   )
   .settings(commonSettings)
