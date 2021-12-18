@@ -25,6 +25,7 @@ import scala.util.Try
 
 final private case class `X-Cloud-Trace-Context`(traceId: ByteVector, spanId: Long):
   override def toString = s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}"
+  def toHeader = `X-Cloud-Trace-Context`.name -> toString
 
 private object `X-Cloud-Trace-Context`:
   inline val name = "X-Cloud-Trace-Context"
