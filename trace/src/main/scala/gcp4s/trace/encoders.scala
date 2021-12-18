@@ -18,6 +18,7 @@ package gcp4s.trace
 
 import cats.syntax.all.*
 import gcp4s.trace.model.StackFrame
+import gcp4s.trace.model.StackFrames
 import gcp4s.trace.model.StackTrace
 import gcp4s.trace.model.TruncatableString
 
@@ -25,7 +26,6 @@ import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
-import gcp4s.trace.model.StackFrames
 
 private def encodeStackTrace(t: Throwable): StackTrace =
   val stackFrames = t

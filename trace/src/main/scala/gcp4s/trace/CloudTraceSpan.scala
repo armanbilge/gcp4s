@@ -16,6 +16,28 @@
 
 package gcp4s.trace
 
-final private class CloudTraceSpan[F[_]]
+import cats.Applicative
+import cats.effect.kernel.Resource
+import natchez.Kernel
+import natchez.Span
+import natchez.TraceValue
+
+import java.net.URI
+
+final private class CloudTraceSpan[F[_]](
+
+)(using F: Applicative[F]) extends Span[F]:
+
+  def kernel: F[Kernel] = ???
+
+  def put(fields: Seq[(String, TraceValue)]): F[Unit] = ???
+
+  def span(name: String): Resource[F, natchez.Span[F]] = ???
+
+  def spanId: F[Option[String]] = ???
+
+  def traceId: F[Option[String]] = ???
+
+  def traceUri: F[Option[URI]] = F.pure(None)
 
 private object CloudTraceSpan
