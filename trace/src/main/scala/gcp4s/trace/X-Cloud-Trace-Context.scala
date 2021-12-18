@@ -17,12 +17,11 @@
 package gcp4s
 package trace
 
-import cats.parse.Parser
-import cats.parse.Rfc5234.*
 import cats.syntax.all.*
 import scodec.bits.ByteVector
 
 import java.lang
+import scala.util.Try
 
 final private case class `X-Cloud-Trace-Context`(traceId: ByteVector, spanId: Long):
   override def toString = s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}"
@@ -30,13 +29,11 @@ final private case class `X-Cloud-Trace-Context`(traceId: ByteVector, spanId: Lo
 private object `X-Cloud-Trace-Context`:
   inline val name = "X-Cloud-Trace-Context"
 
-  def parse(s: String) = parser.parseAll(s)
-
-  private val parser = for
-    (traceId, spanId) <- (hexdig
-      .repExactlyAs[String](32) ~ (Parser.char('/') *> digit.repAs[String](1, 20)))
-    traceId <- ByteVector.fromHex(traceId).fold(Parser.fail)(Parser.pure)
-    spanId <- Either
-      .catchNonFatal(lang.Long.parseUnsignedLong(spanId))
-      .fold(e => Parser.failWith(e.getMessage), Parser.pure)
-  yield `X-Cloud-Trace-Context`(traceId, spanId)
+  def parse(s: String): Option[`X-Cloud-Trace-Context`] =
+    s.split(';').headOption.map(_.split('/')).collect {
+      case Array(traceId, spanId) =>
+        (
+          ByteVector.fromHex(traceId),
+          Try(lang.Long.parseUnsignedLong(spanId)).toOption
+        ).mapN(`X-Cloud-Trace-Context`(_, _))    
+    }.flatten
