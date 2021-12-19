@@ -108,7 +108,7 @@ object DiscoveryPlugin extends AutoPlugin {
         case "array" =>
           property.items.map { p =>
             mkPropertyType(parentName, inflector.singularize(name).capitalize, p).map { t =>
-              s"Vector[$t]"
+              s"List[$t]"
             }
           }
       }

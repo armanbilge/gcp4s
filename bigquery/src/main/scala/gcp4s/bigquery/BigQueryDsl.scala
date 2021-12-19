@@ -17,7 +17,7 @@
 package gcp4s
 package bigquery
 
-import cats.data.NonEmptyVector
+import cats.data.NonEmptyList
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Temporal
@@ -161,7 +161,7 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
     def insertAllAs[A: Encoder.AsObject]: Pipe[F, A, TableDataInsertAllResponse] =
       _.map(a => TableDataInsertAllRequestRow(json = a.asJsonObject.some))
         .chunks
-        .map(as => TableDataInsertAllRequest(rows = as.toVector.some))
+        .map(as => TableDataInsertAllRequest(rows = as.toList.some))
         .through(insertAll())
 
   extension (row: TableRow)
@@ -226,7 +226,7 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
     for
       queryResults <- in
       rows <- Stream
-        .fromOption(queryResults.errors.flatMap(NonEmptyVector.fromVector))
+        .fromOption(queryResults.errors.flatMap(NonEmptyList.fromList))
         .flatMap(errors => Stream.raiseError(BigQueryException(errors)))
         .ifEmpty(Stream.fromOption(queryResults.rows))
       a <- Stream.evalSeq(rows.traverse(_.as[A]).liftTo[F])

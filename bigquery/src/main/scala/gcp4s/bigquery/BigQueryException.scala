@@ -19,8 +19,8 @@ package gcp4s.bigquery
 import gcp4s.bigquery.model.ErrorProto
 
 import scala.util.control.NoStackTrace
-import cats.data.NonEmptyVector
+import cats.data.NonEmptyList
 
-final case class BigQueryException(errors: NonEmptyVector[ErrorProto])
+final case class BigQueryException(errors: NonEmptyList[ErrorProto])
     extends RuntimeException
     with NoStackTrace
