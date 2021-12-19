@@ -40,10 +40,10 @@ class TableSchemaEncoderSuite extends FunSuite:
       name = n.some,
       `type` = t.some,
       mode = m.some,
-      fields = Option.when(t == "RECORD")(f.toVector))
+      fields = Option.when(t == "RECORD")(f.toList))
 
   val schema = TableSchema(
-    Vector(
+    List(
       field("integer", "INTEGER"),
       field("long", "INTEGER"),
       field("float", "FLOAT"),

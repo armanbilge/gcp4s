@@ -72,10 +72,10 @@ object TableFieldSchemaEncoder:
 
 private[bigquery] inline def derivedFields[A](
     using gen: K0.ProductGeneric[A],
-    labelling: Labelling[A]): Vector[TableFieldSchema] =
+    labelling: Labelling[A]): List[TableFieldSchema] =
   val encoders =
     deriving.summonAsArray[K0.LiftP[TableFieldSchemaEncoder, gen.MirroredElemTypes]]
   encoders
     .lazyZip(labelling.elemLabels)
     .map(_.asInstanceOf[TableFieldSchemaEncoder[Any]].encode(_))
-    .toVector
+    .toList
