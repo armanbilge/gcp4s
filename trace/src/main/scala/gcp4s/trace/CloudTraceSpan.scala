@@ -103,7 +103,7 @@ private object CloudTraceSpan:
 
           val links = Option.when(parentSpanId != 0) {
             Links(
-              link = Vector(
+              link = List(
                 Link(
                   traceId = traceId.toHex.some,
                   `type` = "PARENT_LINKED_SPAN".some,

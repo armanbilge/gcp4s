@@ -38,7 +38,7 @@ private def encodeStackTrace(t: Throwable): StackTrace =
         lineNumber = ste.getLineNumber.toLong.some
       )
     }
-    .toVector
+    .toList
 
   StackTrace(t.hashCode.toLong.some, StackFrames(frame = stackFrames.some).some)
 
