@@ -121,6 +121,7 @@ private object CloudTraceSpan:
             childSpanCount = childCount.some,
             sameProcessAsParentSpan = sameProcess.some
           )
-          sink.offer(serialized)
+
+          sink.tryOffer(serialized).void
       }.flatten
     }
