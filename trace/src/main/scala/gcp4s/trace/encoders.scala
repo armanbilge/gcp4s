@@ -56,4 +56,4 @@ private def encodeTruncatableString(s: String, maxBytes: Int): TruncatableString
       dec.decode(bb, cb, true)
       dec.flush(cb)
       val truncated = new String(cb.array, 0, cb.position())
-      TruncatableString(truncated.some, Some(b.length - cb.position()))
+      TruncatableString(truncated.some, Some(b.length - truncated.getBytes(UTF_8).length))
