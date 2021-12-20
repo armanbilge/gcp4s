@@ -39,7 +39,7 @@ final private class CloudTraceSpan[F[_]: Temporal](
     val _traceId: ByteVector,
     val _spanId: Long,
     val childCount: Ref[F, Int],
-    val attributes: Ref[F, List[(String, TraceValue)]],
+    val attributes: Ref[F, Map[String, TraceValue]],
     val startTime: FiniteDuration,
     val sink: model.Span => F[Unit]
 )(using F: Random[F])
@@ -53,7 +53,7 @@ final private class CloudTraceSpan[F[_]: Temporal](
     Kernel(Map(header)).pure
 
   def put(fields: Seq[(String, TraceValue)]): F[Unit] =
-    attributes.update(_.prependedAll(fields))
+    attributes.update(_ ++ fields)
 
   def span(name: String): Resource[F, natchez.Span[F]] = Resource.uncancelable { poll =>
     childCount.update(_ + 1).toResource *> poll(
@@ -82,7 +82,7 @@ private object CloudTraceSpan:
       for
         spanId <- Random[F].nextLong.iterateUntil(_ != 0L)
         childCount <- F.ref(0)
-        attributes <- F.ref(List.empty[(String, TraceValue)])
+        attributes <- F.ref(Map.empty[String, TraceValue])
         now <- F.realTime
       yield CloudTraceSpan(
         projectId,
@@ -117,7 +117,7 @@ private object CloudTraceSpan:
             name = span.resourceName.some,
             startTime = Instant.ofEpochMilli(span.startTime.toMillis).toString.some,
             stackTrace = stackTrace,
-            attributes = ???,
+            attributes = encodeAttributes(attributes).some,
             endTime = Instant.ofEpochMilli(endTime.toMillis).toString.some,
             links = links,
             childSpanCount = childCount.some,

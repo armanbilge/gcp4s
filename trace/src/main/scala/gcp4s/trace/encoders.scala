@@ -17,15 +17,37 @@
 package gcp4s.trace
 
 import cats.syntax.all.*
+import gcp4s.trace.model.AttributeValue
 import gcp4s.trace.model.StackFrame
 import gcp4s.trace.model.StackFrames
 import gcp4s.trace.model.StackTrace
 import gcp4s.trace.model.TruncatableString
+import natchez.TraceValue
 
 import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
+
+private def encodeAttributes(attributes: Map[String, TraceValue]): model.Attributes =
+  import TraceValue.*
+
+  val serialized = attributes
+    .view
+    .take(32)
+    .map { (key, value) =>
+      encodeTruncatableString(key, 128).value.get -> (value match
+        case StringValue(s) =>
+          AttributeValue(stringValue = encodeTruncatableString(s, 256).some)
+        case NumberValue(n) => AttributeValue(intValue = n.longValue.some)
+        case BooleanValue(b) => AttributeValue(boolValue = b.some)
+      )
+    }
+    .toMap
+
+  model.Attributes(
+    attributeMap = serialized.some,
+    droppedAttributesCount = Some(attributes.size - serialized.size))
 
 private def encodeStackTrace(t: Throwable): StackTrace =
   val stackFrames = t
