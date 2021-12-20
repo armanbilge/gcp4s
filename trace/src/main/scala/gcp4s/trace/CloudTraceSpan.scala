@@ -20,12 +20,14 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase
 import cats.effect.kernel.Concurrent
+import cats.effect.kernel.RefSink
 import cats.effect.kernel.Clock
 import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import gcp4s.trace.model.Link
+import gcp4s.trace.model.StackTrace
 import gcp4s.trace.model.Links
 import natchez.Kernel
 import natchez.Span
@@ -42,6 +44,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
     val _spanId: Long,
     val childCount: Ref[F, Int],
     val attributes: Ref[F, Map[String, TraceValue]],
+    val knownExceptions: Ref[F, Set[Int]],
     val startTime: FiniteDuration,
     val sink: QueueSink[F, model.Span]
 )(using F: Concurrent[F])
@@ -59,7 +62,13 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
 
   def span(name: String): Resource[F, natchez.Span[F]] = Resource.uncancelable { poll =>
     childCount.update(_ + 1).toResource *> poll(
-      CloudTraceSpan(sink, name, projectId, _traceId, _spanId))
+      CloudTraceSpan(
+        sink,
+        name,
+        projectId,
+        _traceId,
+        x => knownExceptions.update(_ + x),
+        _spanId))
   }
 
   def spanId: F[Option[String]] = ByteVector.fromLong(_spanId).toHex.some.pure
@@ -74,6 +83,7 @@ private object CloudTraceSpan:
       name: String,
       projectId: String,
       traceId: ByteVector,
+      parentStackTraceHashId: RefSink[F, Int],
       parentSpanId: Long = 0,
       sameProcess: Boolean = true)(using F: Concurrent[F]): Resource[F, Span[F]] =
     Resource.makeCase {
@@ -81,6 +91,7 @@ private object CloudTraceSpan:
         spanId <- Random[F].nextLong.iterateUntil(_ != 0L)
         childCount <- F.ref(0)
         attributes <- F.ref(Map.empty[String, TraceValue])
+        knownExceptions <- F.ref(Set.empty[Int])
         now <- Clock[F].realTime
       yield new CloudTraceSpan(
         projectId,
@@ -88,40 +99,54 @@ private object CloudTraceSpan:
         spanId,
         childCount,
         attributes,
+        knownExceptions,
         now,
         sink
       )
     } { (span, exit) =>
-      (Clock[F].realTime, span.childCount.get, span.attributes.get).mapN {
-        (endTime, childCount, attributes) =>
+      for
+        endTime <- Clock[F].realTime
+        childCount <- span.childCount.get
+        attributes <- span.attributes.get
 
-          val stackTrace = exit match
-            case ExitCase.Errored(e) => Some(encodeStackTrace(e))
-            case _ => None
+        stackTrace <- exit match
+          case ExitCase.Errored(ex) =>
+            val hashId = ex.hashCode
+            parentStackTraceHashId.set(hashId) *>
+              span
+                .knownExceptions
+                .get
+                .map(_(hashId))
+                .ifM(
+                  StackTrace(stackTraceHashId = hashId.toLong.some).some.pure,
+                  span.knownExceptions.update(_ + hashId).as(Some(encodeStackTrace(ex)))
+                )
 
-          val links = Option.when(parentSpanId != 0) {
-            Links(
-              link = List(
-                Link(
-                  traceId = traceId.toHex.some,
-                  `type` = "PARENT_LINKED_SPAN".some,
-                  spanId = ByteVector.fromLong(parentSpanId).toHex.some
-                )).some
-            )
-          }
+          case _ => None.pure
 
-          val serialized = model.Span(
-            displayName = encodeTruncatableString(name, 128).some,
-            name = span.resourceName.some,
-            startTime = Instant.ofEpochMilli(span.startTime.toMillis).toString.some,
-            stackTrace = stackTrace,
-            attributes = encodeAttributes(attributes).some,
-            endTime = Instant.ofEpochMilli(endTime.toMillis).toString.some,
-            links = links,
-            childSpanCount = childCount.some,
-            sameProcessAsParentSpan = sameProcess.some
+        links = Option.when(parentSpanId != 0) {
+          Links(
+            link = List(
+              Link(
+                traceId = traceId.toHex.some,
+                `type` = "PARENT_LINKED_SPAN".some,
+                spanId = ByteVector.fromLong(parentSpanId).toHex.some
+              )).some
           )
+        }
 
-          sink.tryOffer(serialized).void
-      }.flatten
+        serialized = model.Span(
+          displayName = encodeTruncatableString(name, 128).some,
+          name = span.resourceName.some,
+          startTime = Instant.ofEpochMilli(span.startTime.toMillis).toString.some,
+          stackTrace = stackTrace,
+          attributes = encodeAttributes(attributes).some,
+          endTime = Instant.ofEpochMilli(endTime.toMillis).toString.some,
+          links = links,
+          childSpanCount = childCount.some,
+          sameProcessAsParentSpan = sameProcess.some
+        )
+
+        _ <- sink.tryOffer(serialized).void
+      yield ()
     }
