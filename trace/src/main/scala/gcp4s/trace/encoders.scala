@@ -50,19 +50,17 @@ private def encodeAttributes(attributes: Map[String, TraceValue]): model.Attribu
     droppedAttributesCount = Some(attributes.size - serialized.size))
 
 private def encodeStackTrace(t: Throwable): StackTrace =
-  val stackFrames = t
-    .getStackTrace
-    .view
-    .map { ste =>
+  val stackFrames = Option(t.getStackTrace).map { st =>
+    st.map { ste =>
       StackFrame(
         functionName = encodeTruncatableString(ste.getMethodName, 1024).some,
         fileName = encodeTruncatableString(ste.getFileName, 256).some,
         lineNumber = ste.getLineNumber.toLong.some
       )
-    }
-    .toList
+    }.toList
+  }
 
-  StackTrace(t.hashCode.toLong.some, StackFrames(frame = stackFrames.some).some)
+  StackTrace(t.hashCode.toLong.some, StackFrames(frame = stackFrames).some)
 
 private def encodeTruncatableString(s: String, maxBytes: Int): TruncatableString =
   if s.length <= 4 * maxBytes then TruncatableString(s.some, 0.some)
