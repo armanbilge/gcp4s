@@ -17,8 +17,9 @@
 package gcp4s.trace
 
 import cats.data.OptionT
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
-import cats.effect.kernel.Temporal
 import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.syntax.all.*
@@ -27,9 +28,9 @@ import natchez.Kernel
 import natchez.Span
 import scodec.bits.ByteVector
 
-final private class CloudTraceEntryPoint[F[_]: Random](
+final private class CloudTraceEntryPoint[F[_]: Clock: Random](
     projectId: String,
-    sink: QueueSink[F, model.Span])(using F: Temporal[F])
+    sink: QueueSink[F, model.Span])(using F: Concurrent[F])
     extends EntryPoint[F]:
 
   def root(name: String): Resource[F, Span[F]] =

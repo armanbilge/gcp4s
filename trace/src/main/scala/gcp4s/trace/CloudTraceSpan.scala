@@ -19,7 +19,8 @@ package gcp4s.trace
 import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase
-import cats.effect.kernel.Temporal
+import cats.effect.kernel.Concurrent
+import cats.effect.kernel.Clock
 import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
@@ -35,7 +36,7 @@ import java.net.URI
 import java.time.Instant
 import scala.concurrent.duration.FiniteDuration
 
-final private class CloudTraceSpan[F[_]: Temporal](
+final private class CloudTraceSpan[F[_]: Clock: Random](
     val projectId: String,
     val _traceId: ByteVector,
     val _spanId: Long,
@@ -43,7 +44,7 @@ final private class CloudTraceSpan[F[_]: Temporal](
     val attributes: Ref[F, Map[String, TraceValue]],
     val startTime: FiniteDuration,
     val sink: QueueSink[F, model.Span]
-)(using F: Random[F])
+)(using F: Concurrent[F])
     extends Span[F]:
 
   def resourceName: String =
@@ -68,24 +69,19 @@ final private class CloudTraceSpan[F[_]: Temporal](
   def traceUri: F[Option[URI]] = URI(s"projects/$projectId/traces/${_traceId.toHex}").some.pure
 
 private object CloudTraceSpan:
-  def apply[F[_]: Random](
+  def apply[F[_]: Clock: Random](
       sink: QueueSink[F, model.Span],
       name: String,
       projectId: String,
       traceId: ByteVector,
       parentSpanId: Long = 0,
-      sameProcess: Boolean = true)(using F: Temporal[F]): Resource[F, Span[F]] =
-
-    val nextSpanId = Random[F].nextLong.iterateUntil(_ != 0L)
-
-    (nextSpanId, F.ref(0), F.ref(List.empty[(String, TraceValue)]), F.realTime).mapN
-
+      sameProcess: Boolean = true)(using F: Concurrent[F]): Resource[F, Span[F]] =
     Resource.makeCase {
       for
         spanId <- Random[F].nextLong.iterateUntil(_ != 0L)
         childCount <- F.ref(0)
         attributes <- F.ref(Map.empty[String, TraceValue])
-        now <- F.realTime
+        now <- Clock[F].realTime
       yield new CloudTraceSpan(
         projectId,
         traceId,
@@ -96,7 +92,7 @@ private object CloudTraceSpan:
         sink
       )
     } { (span, exit) =>
-      (F.realTime, span.childCount.get, span.attributes.get).mapN {
+      (Clock[F].realTime, span.childCount.get, span.attributes.get).mapN {
         (endTime, childCount, attributes) =>
 
           val stackTrace = exit match

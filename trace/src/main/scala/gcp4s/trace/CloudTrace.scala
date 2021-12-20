@@ -16,8 +16,9 @@
 
 package gcp4s.trace
 
+import cats.effect.kernel.Resource
 import natchez.EntryPoint
 import org.http4s.client.Client
 
 object CloudTrace:
-  def entryPoint[F[_]](client: Client[F]): EntryPoint[F] = ???
+  def entryPoint[F[_]](client: Client[F]): Resource[F, EntryPoint[F]] = ???
