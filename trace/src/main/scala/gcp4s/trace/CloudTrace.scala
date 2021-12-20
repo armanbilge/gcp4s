@@ -16,9 +16,31 @@
 
 package gcp4s.trace
 
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
+import cats.effect.std.Queue
+import cats.effect.std.Random
+import cats.effect.syntax
+import cats.effect.syntax.all.*
+import fs2.Stream
+import gcp4s.ComputeMetadata
 import natchez.EntryPoint
 import org.http4s.client.Client
 
 object CloudTrace:
-  def entryPoint[F[_]](client: Client[F]): Resource[F, EntryPoint[F]] = ???
+  def entryPoint[F[_]: Concurrent: Clock: Random](
+      client: Client[F],
+      metadata: ComputeMetadata[F]): Resource[F, EntryPoint[F]] =
+    for
+      projectId <- metadata.getProjectId.toResource
+      traceClient = CloudTraceClient(client, projectId)
+      queue <- Queue.unbounded[F, model.Span].toResource
+      _ <- Stream
+        .fromQueueUnterminated(queue)
+        .chunks
+        .evalMap(c => traceClient.batchWrite(c.toList))
+        .compile
+        .resource
+        .drain
+    yield CloudTraceEntryPoint(projectId, queue)
