@@ -20,6 +20,7 @@ import cats.effect.kernel.Ref
 import cats.effect.kernel.Resource
 import cats.effect.kernel.Resource.ExitCase
 import cats.effect.kernel.Temporal
+import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
@@ -41,7 +42,7 @@ final private class CloudTraceSpan[F[_]: Temporal](
     val childCount: Ref[F, Int],
     val attributes: Ref[F, Map[String, TraceValue]],
     val startTime: FiniteDuration,
-    val sink: model.Span => F[Unit]
+    val sink: QueueSink[F, model.Span]
 )(using F: Random[F])
     extends Span[F]:
 
@@ -57,7 +58,7 @@ final private class CloudTraceSpan[F[_]: Temporal](
 
   def span(name: String): Resource[F, natchez.Span[F]] = Resource.uncancelable { poll =>
     childCount.update(_ + 1).toResource *> poll(
-      CloudTraceSpan.make[F](sink)(name, projectId, _traceId, _spanId))
+      CloudTraceSpan(sink, name, projectId, _traceId, _spanId))
   }
 
   def spanId: F[Option[String]] = ByteVector.fromLong(_spanId).toHex.some.pure
@@ -67,7 +68,8 @@ final private class CloudTraceSpan[F[_]: Temporal](
   def traceUri: F[Option[URI]] = URI(s"projects/$projectId/traces/${_traceId.toHex}").some.pure
 
 private object CloudTraceSpan:
-  def make[F[_]: Random](sink: model.Span => F[Unit])(
+  def apply[F[_]: Random](
+      sink: QueueSink[F, model.Span],
       name: String,
       projectId: String,
       traceId: ByteVector,
@@ -84,7 +86,7 @@ private object CloudTraceSpan:
         childCount <- F.ref(0)
         attributes <- F.ref(Map.empty[String, TraceValue])
         now <- F.realTime
-      yield CloudTraceSpan(
+      yield new CloudTraceSpan(
         projectId,
         traceId,
         spanId,
@@ -123,6 +125,6 @@ private object CloudTraceSpan:
             childSpanCount = childCount.some,
             sameProcessAsParentSpan = sameProcess.some
           )
-          sink(serialized)
+          sink.offer(serialized)
       }.flatten
     }
