@@ -110,9 +110,15 @@ private object CloudTraceSpan:
         attributes <- span.attributes.get
 
         stackTrace <- exit match
+          case ExitCase.Succeeded => None.pure
+
           case ExitCase.Errored(ex) =>
             val hashId = ex.hashCode
-            parentStackTraceHashId.set(hashId) *>
+            span.put(
+              "error/name" -> ex.getClass.getSimpleName ::
+                Option(ex.getMessage).map(m => "/error/message" -> (m: TraceValue)).toList
+            ) *>
+              parentStackTraceHashId.set(hashId) *>
               span
                 .knownExceptions
                 .get
@@ -122,7 +128,8 @@ private object CloudTraceSpan:
                   span.knownExceptions.update(_ + hashId).as(Some(encodeStackTrace(ex)))
                 )
 
-          case _ => None.pure
+          case ExitCase.Canceled =>
+            span.put(List("/error/name" -> "CancellationException")).as(None)
 
         links = Option.when(parentSpanId != 0) {
           Links(
