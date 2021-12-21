@@ -36,7 +36,8 @@ private def encodeAttributes(attributes: Map[String, TraceValue]): model.Attribu
     .view
     .take(32)
     .map { (key, value) =>
-      encodeTruncatableString(key, 128).value.get -> (value match
+      // Natchez uses '.' delimiter where Cloud Trace uses '/' 
+      encodeTruncatableString(key.replace('.', '/'), 128).value.get -> (value match
         case StringValue(s) =>
           AttributeValue(stringValue = encodeTruncatableString(s, 256).some)
         case NumberValue(n) => AttributeValue(intValue = n.longValue.some)
