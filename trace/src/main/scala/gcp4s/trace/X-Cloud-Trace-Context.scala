@@ -17,24 +17,41 @@
 package gcp4s
 package trace
 
+import cats.parse.Parser
+import cats.parse.Rfc5234.*
 import cats.syntax.all.*
 import scodec.bits.ByteVector
 
 import java.lang
 import scala.util.Try
 
-final private case class `X-Cloud-Trace-Context`(traceId: ByteVector, spanId: Long):
-  override def toString = s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}"
+final private case class `X-Cloud-Trace-Context`(
+    traceId: ByteVector,
+    spanId: Long,
+    force: Option[Boolean]):
+  
+  override def toString =
+    val o = force.fold("")(f => s";o=${if f then '1' else '0'}")
+    s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}$o"
+  
   def toHeader = `X-Cloud-Trace-Context`.name -> toString
 
 private object `X-Cloud-Trace-Context`:
   inline val name = "X-Cloud-Trace-Context"
 
   def parse(s: String): Option[`X-Cloud-Trace-Context`] =
-    s.split(';').headOption.map(_.split('/')).collect {
-      case Array(traceId, spanId) =>
-        (
+    parser.parseAll(s).toOption.flatMap { case ((traceId, spanId), force) =>
+      (
           ByteVector.fromHex(traceId),
-          Try(lang.Long.parseUnsignedLong(spanId)).toOption
-        ).mapN(`X-Cloud-Trace-Context`(_, _))    
-    }.flatten
+          Try(lang.Long.parseUnsignedLong(spanId)).toOption,
+          force.flatten.collect {
+            case '0' => false
+            case '1' => true
+          }.some
+        ).mapN(`X-Cloud-Trace-Context`(_, _, _))
+    }
+
+  private val parser =
+    hexdig.repExactlyAs[String](32) ~
+      (Parser.char('/') *> digit.repAs[String](1, 20)) ~
+      (Parser.char(';') *> (Parser.string("o=") *> Parser.charIn('0', '1')).?).?

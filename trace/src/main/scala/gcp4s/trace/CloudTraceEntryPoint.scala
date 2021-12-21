@@ -36,7 +36,7 @@ final private class CloudTraceEntryPoint[F[_]: Clock: Random](
   def root(name: String): Resource[F, Span[F]] =
     Resource
       .eval(Random[F].nextBytes(16).map(ByteVector(_)))
-      .flatMap(CloudTraceSpan(sink, name, projectId, _, _ => F.unit))
+      .flatMap(CloudTraceSpan(sink, name, projectId, _, None, _ => F.unit))
 
   def continue(name: String, kernel: Kernel): Resource[F, Span[F]] =
     tryContinue(name, kernel).getOrElseF(
@@ -51,6 +51,6 @@ final private class CloudTraceEntryPoint[F[_]: Clock: Random](
       .get(`X-Cloud-Trace-Context`.name)
       .flatMap(`X-Cloud-Trace-Context`.parse(_))
     OptionT.fromOption[Resource[F, _]](header).semiflatMap {
-      case `X-Cloud-Trace-Context`(traceId, spanId) =>
-        CloudTraceSpan(sink, name, projectId, traceId, _ => F.unit, spanId, false)
+      case `X-Cloud-Trace-Context`(traceId, spanId, force) =>
+        CloudTraceSpan(sink, name, projectId, traceId, force, _ => F.unit, spanId, false)
     }

@@ -42,6 +42,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
     val projectId: String,
     val _traceId: ByteVector,
     val _spanId: Long,
+    val force: Option[Boolean],
     val childCount: Ref[F, Int],
     val attributes: Ref[F, Map[String, TraceValue]],
     val knownExceptions: Ref[F, Set[Int]],
@@ -54,7 +55,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
     s"projects/$projectId/traces/${_traceId.toHex}/spans/${ByteVector.fromLong(_spanId).toHex}"
 
   def kernel: F[Kernel] =
-    val header = `X-Cloud-Trace-Context`(_traceId, _spanId).toHeader
+    val header = `X-Cloud-Trace-Context`(_traceId, _spanId, force).toHeader
     Kernel(Map(header)).pure
 
   def put(fields: Seq[(String, TraceValue)]): F[Unit] =
@@ -67,6 +68,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
         name,
         projectId,
         _traceId,
+        force,
         x => knownExceptions.update(_ + x),
         _spanId))
   }
@@ -83,6 +85,7 @@ private object CloudTraceSpan:
       name: String,
       projectId: String,
       traceId: ByteVector,
+      force: Option[Boolean],
       parentStackTraceHashId: RefSink[F, Int],
       parentSpanId: Long = 0,
       sameProcess: Boolean = true)(using F: Concurrent[F]): Resource[F, Span[F]] =
@@ -97,6 +100,7 @@ private object CloudTraceSpan:
         projectId,
         traceId,
         spanId,
+        force,
         childCount,
         attributes,
         knownExceptions,
