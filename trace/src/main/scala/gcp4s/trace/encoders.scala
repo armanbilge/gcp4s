@@ -34,16 +34,20 @@ private def encodeAttributes(attributes: Map[String, TraceValue]): model.Attribu
 
   val serialized = attributes
     .view
-    .take(32)
-    .map { (key, value) =>
-      // Natchez uses '.' delimiter where Cloud Trace uses '/' 
-      encodeTruncatableString(key.replace('.', '/'), 128).value.get -> (value match
-        case StringValue(s) =>
-          AttributeValue(stringValue = encodeTruncatableString(s, 256).some)
-        case NumberValue(n) => AttributeValue(intValue = n.longValue.some)
-        case BooleanValue(b) => AttributeValue(boolValue = b.some)
-      )
+    .collect {
+      case (l, v) if l.nonEmpty && l.length <= 128 =>
+        // Natchez uses '.' delimiter where Cloud Trace uses '/'
+        val label = if l.charAt(0) == '/' then l else "/" + l.replace('.', '/')
+
+        val value = v match
+          case StringValue(s) =>
+            AttributeValue(stringValue = encodeTruncatableString(s, 256).some)
+          case NumberValue(n) => AttributeValue(intValue = n.longValue.some)
+          case BooleanValue(b) => AttributeValue(boolValue = b.some)
+
+        label -> value
     }
+    .take(32)
     .toMap
 
   model.Attributes(

@@ -115,7 +115,7 @@ private object CloudTraceSpan:
           case ExitCase.Errored(ex) =>
             val hashId = ex.hashCode
             span.put(
-              "error/name" -> ex.getClass.getSimpleName ::
+              "/error/name" -> ex.getClass.getSimpleName ::
                 Option(ex.getMessage).map(m => "/error/message" -> (m: TraceValue)).toList
             ) *>
               parentStackTraceHashId.set(hashId) *>
