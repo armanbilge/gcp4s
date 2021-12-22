@@ -23,6 +23,7 @@ import cats.effect.kernel.Resource
 import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.syntax.all.*
+import cats.effect.syntax.all.*
 import natchez.EntryPoint
 import natchez.Kernel
 import natchez.Span
@@ -30,13 +31,17 @@ import scodec.bits.ByteVector
 
 final private class CloudTraceEntryPoint[F[_]: Clock: Random](
     projectId: String,
-    sink: QueueSink[F, model.Span])(using F: Concurrent[F])
+    sink: QueueSink[F, model.Span],
+    sampler: Sampler[F])(using F: Concurrent[F])
     extends EntryPoint[F]:
 
   def root(name: String): Resource[F, Span[F]] =
-    Resource
-      .eval(Random[F].nextBytes(16).map(ByteVector(_)))
-      .flatMap(CloudTraceSpan(sink, name, projectId, _, None, _ => F.unit))
+    for
+      traceId <- Random[F].nextBytes(16).map(ByteVector(_)).toResource
+      sample <- sampler.sample.toResource
+      flags = Some[Byte](if sample then 1 else 0)
+      span <- CloudTraceSpan(sink, name, projectId, traceId, flags, _ => F.unit)
+    yield span
 
   def continue(name: String, kernel: Kernel): Resource[F, Span[F]] =
     tryContinue(name, kernel).getOrElseF(

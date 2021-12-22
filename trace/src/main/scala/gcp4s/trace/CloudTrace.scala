@@ -31,7 +31,8 @@ import org.http4s.client.Client
 object CloudTrace:
   def entryPoint[F[_]: Concurrent: Clock: Random](
       client: Client[F],
-      metadata: ComputeMetadata[F]): Resource[F, EntryPoint[F]] =
+      metadata: ComputeMetadata[F],
+      sampler: Sampler[F]): Resource[F, EntryPoint[F]] =
     for
       projectId <- metadata.getProjectId.toResource
       traceClient = CloudTraceClient(client, projectId)
@@ -43,4 +44,4 @@ object CloudTrace:
         .compile
         .resource
         .drain
-    yield CloudTraceEntryPoint(projectId, queue)
+    yield CloudTraceEntryPoint(projectId, queue, sampler)

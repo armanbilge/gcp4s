@@ -29,7 +29,7 @@ class CloudTraceSpanSuite extends CatsEffectSuite {
     Random.scalaUtilRandom[IO].flatMap { implicit random =>
       Queue.unbounded[IO, model.Span].flatMap { queue =>
         CloudTraceEntryPoint
-          .apply("projectId", queue)
+          .apply("projectId", queue, Sampler.always)
           .root("root")
           .flatMap(_.span("level 1"))
           .flatMap(_.span("level 2"))
