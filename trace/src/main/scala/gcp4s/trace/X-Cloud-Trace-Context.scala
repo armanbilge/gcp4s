@@ -31,8 +31,11 @@ final private case class `X-Cloud-Trace-Context`(
     flags: Option[Byte]):
 
   override def toString =
-    val o = flags.fold("")(f => s";o=${lang.Byte.toUnsignedInt(f).toHexString}")
+    val o = flags.fold("")(f => s";o=${byteToUint(f).toHexString}")
     s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}$o"
+
+  // lang.Byte.toUnsignedInt is missing on Scala.js
+  private inline def byteToUint(b: Byte) = b.toInt & 0xff
 
   def toHeader = `X-Cloud-Trace-Context`.name -> toString
 
