@@ -28,30 +28,29 @@ import scala.util.Try
 final private case class `X-Cloud-Trace-Context`(
     traceId: ByteVector,
     spanId: Long,
-    force: Option[Boolean]):
-  
+    flags: Option[Byte]):
+
   override def toString =
-    val o = force.fold("")(f => s";o=${if f then '1' else '0'}")
+    val o = flags.fold("")(f => s";o=${lang.Byte.toUnsignedInt(f).toHexString}")
     s"${traceId.toHex}/${lang.Long.toUnsignedString(spanId)}$o"
-  
+
   def toHeader = `X-Cloud-Trace-Context`.name -> toString
 
 private object `X-Cloud-Trace-Context`:
   inline val name = "X-Cloud-Trace-Context"
 
   def parse(s: String): Option[`X-Cloud-Trace-Context`] =
-    parser.parseAll(s).toOption.flatMap { case ((traceId, spanId), force) =>
-      (
+    parser.parseAll(s).toOption.flatMap {
+      case ((traceId, spanId), flags) =>
+        val f =
+          flags.flatten.flatMap(x => Try(lang.Integer.parseUnsignedInt(x, 16).toByte).toOption)
+        (
           ByteVector.fromHex(traceId),
-          Try(lang.Long.parseUnsignedLong(spanId)).toOption,
-          force.flatten.collect {
-            case '0' => false
-            case '1' => true
-          }.some
-        ).mapN(`X-Cloud-Trace-Context`(_, _, _))
+          Try(lang.Long.parseUnsignedLong(spanId)).toOption
+        ).mapN(`X-Cloud-Trace-Context`(_, _, f))
     }
 
   private val parser =
     hexdig.repExactlyAs[String](32) ~
       (Parser.char('/') *> digit.repAs[String](1, 20)) ~
-      (Parser.char(';') *> (Parser.string("o=") *> Parser.charIn('0', '1')).?).?
+      (Parser.char(';') *> (Parser.string("o=") *> hexdig.repAs[String](1, 2)).?).?

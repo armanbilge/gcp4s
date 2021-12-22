@@ -17,11 +17,11 @@
 package gcp4s.trace
 
 import munit.ScalaCheckSuite
+import org.scalacheck.Arbitrary
+import org.scalacheck.Gen
 import org.scalacheck.Prop.forAllNoShrink
 import scodec.bits.ByteVector
 import scodec.bits.hex
-import org.scalacheck.Arbitrary
-import org.scalacheck.Gen
 
 class XCloudTraceContextSuite extends ScalaCheckSuite:
 
@@ -30,7 +30,7 @@ class XCloudTraceContextSuite extends ScalaCheckSuite:
     val expected = `X-Cloud-Trace-Context`(
       hex"105445aa7843bc8bf206b12000100000",
       1,
-      Some(true)
+      Some(1)
     )
     assertEquals(parsed, Some(expected))
   }
@@ -39,8 +39,8 @@ class XCloudTraceContextSuite extends ScalaCheckSuite:
     for
       traceId <- Gen.listOfN(16, Arbitrary.arbitrary[Byte]).map(ByteVector(_))
       spanId <- Gen.long
-      force <- Arbitrary.arbitrary[Option[Boolean]]
-    yield `X-Cloud-Trace-Context`(traceId, spanId, force)
+      flags <- Arbitrary.arbitrary[Option[Byte]]
+    yield `X-Cloud-Trace-Context`(traceId, spanId, flags)
   )
 
   property("round-trip") {
