@@ -112,6 +112,7 @@ private object CloudTraceSpan:
         endTime <- Clock[F].realTime
         childCount <- span.childCount.get
         attributes <- span.attributes.get
+        spanId <- span.spanId
 
         stackTrace <- exit match
           case ExitCase.Succeeded => None.pure
@@ -149,6 +150,7 @@ private object CloudTraceSpan:
         serialized = model.Span(
           displayName = encodeTruncatableString(name, 128).some,
           name = span.resourceName.some,
+          spanId = spanId,
           startTime = Instant.ofEpochMilli(span.startTime.toMillis).toString.some,
           stackTrace = stackTrace,
           attributes = encodeAttributes(attributes).some,
