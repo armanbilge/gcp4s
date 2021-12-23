@@ -27,12 +27,13 @@ import fs2.Stream
 import gcp4s.ComputeMetadata
 import natchez.EntryPoint
 import org.http4s.client.Client
+import org.typelevel.log4cats.Logger
 
 object CloudTrace:
-  def entryPoint[F[_]: Concurrent: Clock: Random](
+  def entryPoint[F[_]: Clock: Random: Logger](
       client: Client[F],
       metadata: ComputeMetadata[F],
-      sampler: Sampler[F]): Resource[F, EntryPoint[F]] =
+      sampler: Sampler[F])(using F: Concurrent[F]): Resource[F, EntryPoint[F]] =
     for
       projectId <- metadata.getProjectId.toResource
       traceClient = CloudTraceClient(client, projectId)
@@ -41,6 +42,11 @@ object CloudTrace:
         .fromQueueUnterminated(queue)
         .chunks
         .evalMap(c => traceClient.batchWrite(c.toList))
+        .attempt
+        .evalTap {
+          case Left(ex) => Logger[F].error(ex)(ex.getMessage)
+          case _ => F.unit
+        }
         .compile
         .resource
         .drain

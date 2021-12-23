@@ -27,9 +27,10 @@ ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.7.0"
 val CatsEffectVersion = "3.3.1"
+val CirceVersion = "0.15.0-M1"
 val Fs2Version = "3.2.3"
 val Http4sVersion = "0.23.7"
-val CirceVersion = "0.15.0-M1"
+val Log4CatsVersion = "1.4.0"
 val MonocleVersion = "3.1.0"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.7"
@@ -108,7 +109,8 @@ lazy val trace = crossProject(JVMPlatform, JSPlatform)
     name := "gcp4s-trace",
     discoveryPackage := "gcp4s.trace",
     libraryDependencies ++= Seq(
-      "org.tpolecat" %%% "natchez-core" % NatchezVersion
+      "org.tpolecat" %%% "natchez-core" % NatchezVersion,
+      "org.typelevel" %%% "log4cats-core" % Log4CatsVersion
     )
   )
   .settings(commonSettings)
