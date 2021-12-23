@@ -32,12 +32,11 @@ import org.typelevel.log4cats.Logger
 object CloudTrace:
   def entryPoint[F[_]: Clock: Random: Logger](
       client: Client[F],
-      metadata: ComputeMetadata[F],
+      projectId: String,
       sampler: Sampler[F])(using F: Concurrent[F]): Resource[F, EntryPoint[F]] =
     for
-      projectId <- metadata.getProjectId.toResource
-      traceClient = CloudTraceClient(client, projectId)
       queue <- Queue.unbounded[F, model.Span].toResource
+      traceClient = CloudTraceClient(client, projectId)
       _ <- Stream
         .fromQueueUnterminated(queue)
         .chunks
