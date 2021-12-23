@@ -27,7 +27,7 @@ import org.typelevel.log4cats.Logger
 class CloudTraceLiveSuite extends Gcp4sLiveSuite:
 
   test("Send live traces") {
-    val span = for
+    for
       client <- googleClient
       projectId <- googleCredentials.map(_.projectId)
       given Random[IO] <- Random.scalaUtilRandom[IO]
