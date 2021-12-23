@@ -23,7 +23,6 @@ import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import natchez.Trace
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.noop.NoOpLogger
 
 class CloudTraceLiveSuite extends Gcp4sLiveSuite:
 
