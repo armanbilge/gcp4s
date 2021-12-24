@@ -34,7 +34,7 @@ final private class CloudTraceClient[F[_]: Concurrent](client: Client[F], projec
       CirceEntityDecoder:
   private val endpoint = uri"https://cloudtrace.googleapis.com/v2/projects"
 
-  protected override val defaultPrinter = super.defaultPrinter.copy(dropNullValues = true)
+  override protected val defaultPrinter = super.defaultPrinter.copy(dropNullValues = true)
   private given [F[_], A: Encoder]: EntityEncoder[F, A] =
     jsonEncoderOf[F, A]
 
