@@ -30,14 +30,13 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.text
 import gcp4s.bigquery.model.*
+import gcp4s.json.given
 import io.circe.Encoder
 import io.circe.syntax.*
 import monocle.syntax.all.*
 import org.http4s.MediaType
 import org.http4s.Method.*
 import org.http4s.Uri
-import org.http4s.circe.CirceEntityDecoder.*
-import org.http4s.circe.CirceEntityEncoder.*
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.syntax.all.*

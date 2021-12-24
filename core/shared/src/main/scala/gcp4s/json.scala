@@ -20,12 +20,15 @@ import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.scodec.decodeByteVector
 import io.circe.scodec.encodeByteVector
+import org.http4s.EntityEncoder
+import org.http4s.circe.CirceEntityDecoder
+import org.http4s.circe.CirceInstances
 import scodec.bits.ByteVector
 
 import scala.concurrent.duration.*
 import scala.util.Try
 
-object json:
+object json extends CirceInstances, CirceEntityDecoder:
   given Decoder[Long] = Decoder.decodeString.emapTry(s => Try(s.toLong)).or(Decoder.decodeLong)
   given Encoder[Long] = Encoder.encodeString.contramap(_.toString)
 
@@ -45,3 +48,6 @@ object json:
     Decoder.decodeString.emapTry(x => Try(x.asInstanceOf[A]))
   given [A <: Singleton](using ev: A <:< String): Encoder[A] =
     Encoder.encodeString.contramap(ev)
+
+  override protected val defaultPrinter = super.defaultPrinter.copy(dropNullValues = true)
+  given [F[_], A: Encoder]: EntityEncoder[F, A] = jsonEncoderOf[F, A]
