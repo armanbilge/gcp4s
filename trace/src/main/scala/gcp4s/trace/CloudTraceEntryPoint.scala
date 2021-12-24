@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-package gcp4s.trace
+package gcp4s
+package trace
 
 import cats.data.OptionT
 import cats.effect.kernel.Clock
@@ -22,11 +23,12 @@ import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
 import cats.effect.std.QueueSink
 import cats.effect.std.Random
-import cats.syntax.all.*
 import cats.effect.syntax.all.*
+import cats.syntax.all.*
 import natchez.EntryPoint
 import natchez.Kernel
 import natchez.Span
+import natchez.TraceValue
 import scodec.bits.ByteVector
 
 final private class CloudTraceEntryPoint[F[_]: Clock: Random](
@@ -41,6 +43,7 @@ final private class CloudTraceEntryPoint[F[_]: Clock: Random](
       sample <- sampler.sample.toResource
       flags = Some[Byte](if sample then 1 else 0)
       span <- CloudTraceSpan(sink, name, projectId, traceId, flags, _ => F.unit)
+      _ <- tagAgent(span).toResource
     yield span
 
   def continue(name: String, kernel: Kernel): Resource[F, Span[F]] =
@@ -55,7 +58,14 @@ final private class CloudTraceEntryPoint[F[_]: Clock: Random](
       .toHeaders
       .get(`X-Cloud-Trace-Context`.name)
       .flatMap(`X-Cloud-Trace-Context`.parse(_))
-    OptionT.fromOption[Resource[F, _]](header).semiflatMap {
-      case `X-Cloud-Trace-Context`(traceId, spanId, force) =>
-        CloudTraceSpan(sink, name, projectId, traceId, force, _ => F.unit, spanId, false)
-    }
+    OptionT
+      .fromOption[Resource[F, _]](header)
+      .semiflatMap {
+        case `X-Cloud-Trace-Context`(traceId, spanId, force) =>
+          CloudTraceSpan(sink, name, projectId, traceId, force, _ => F.unit, spanId, false)
+      }
+      .semiflatTap(tagAgent(_).toResource)
+
+  private val agent: (String, TraceValue) =
+    "/agent" -> s"${BuildInfo.name} v${BuildInfo.version}"
+  private def tagAgent(span: Span[F]): F[Unit] = span.put(agent)

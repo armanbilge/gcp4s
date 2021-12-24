@@ -57,6 +57,7 @@ lazy val root =
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
+  .enablePlugins(BuildInfoPlugin)
   .settings(
     name := "gcp4s",
     libraryDependencies ++= Seq(
@@ -73,7 +74,10 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test,
       "org.http4s" %%% "http4s-dsl" % Http4sVersion % Test,
       "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test
-    )
+    ),
+    buildInfoRenderFactory := sbtbuildinfo.Scala3CaseObjectRenderer.apply,
+    buildInfoPackage := "gcp4s",
+    buildInfoOptions += BuildInfoOption.PackagePrivate
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
