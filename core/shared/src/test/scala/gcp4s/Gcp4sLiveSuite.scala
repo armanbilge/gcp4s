@@ -34,7 +34,10 @@ import org.http4s.client.middleware.Retry
 import org.http4s.ember.client.EmberClientBuilder
 
 object Gcp4sLiveSuite:
-  val scopes = List("https://www.googleapis.com/auth/bigquery")
+  val scopes = List(
+    "https://www.googleapis.com/auth/bigquery",
+    "https://www.googleapis.com/auth/trace.append"
+  )
 
   private lazy val setup: IO[(Client[IO], GoogleCredentials[IO], Client[IO])] =
     val deferred =
