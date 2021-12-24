@@ -239,7 +239,7 @@ trait BigQueryDsl[F[_]](client: Client[F])(using F: Concurrent[F]) extends Http4
 
     def upload: Pipe[F, Byte, Job] =
       if job.configuration.flatMap(_.load).isDefined then
-        client.resumableUpload(
+        client.resumableUpload[Job](
           POST(job, mediaUri).withHeaders(
             `X-Upload-Content-Type`(MediaType.application.`octet-stream`)))
       else _ => Stream.raiseError(new IllegalArgumentException("Not an upload job"))
