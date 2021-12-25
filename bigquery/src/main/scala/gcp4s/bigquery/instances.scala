@@ -29,10 +29,10 @@ import org.http4s.QueryParameterValue
 
 import scala.concurrent.duration.FiniteDuration
 
-private[bigquery] given QueryParamEncoder[FiniteDuration] =
+given QueryParamEncoder[FiniteDuration] =
   QueryParamEncoder.longQueryParamEncoder.contramap(_.toMillis)
 
-private[bigquery] given QueryParamEncoder[Map[String, String]] =
+given QueryParamEncoder[Map[String, String]] =
   QueryParamEncoder.stringQueryParamEncoder.contramap { filter =>
     filter
       .view
@@ -62,6 +62,3 @@ given Paginated[TableDataList] with
 given Paginated[GetQueryResultsResponse] with
   extension (gqrs: GetQueryResultsResponse) def pageToken = gqrs.pageToken
 
-extension (row: TableRow)
-  def as[A](using d: TableRowDecoder[A]): Either[Throwable, A] =
-    d.decode(row)

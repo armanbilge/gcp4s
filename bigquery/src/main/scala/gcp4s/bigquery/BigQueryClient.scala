@@ -30,6 +30,7 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.text
 import gcp4s.bigquery.model.*
+import gcp4s.bigquery.syntax.*
 import gcp4s.json.given
 import io.circe.Encoder
 import io.circe.syntax.*

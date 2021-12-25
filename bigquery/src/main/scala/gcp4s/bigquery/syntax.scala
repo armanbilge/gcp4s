@@ -16,7 +16,12 @@
 
 package gcp4s.bigquery
 
+import gcp4s.bigquery.model.TableRow
 import gcp4s.bigquery.model.TableSchema
 
 object syntax:
   def schemaFor[A](using e: TableSchemaEncoder[A]): TableSchema = e.encode
+
+  extension (row: TableRow)
+    def as[A](using d: TableRowDecoder[A]): Either[Throwable, A] =
+      d.decode(row)
