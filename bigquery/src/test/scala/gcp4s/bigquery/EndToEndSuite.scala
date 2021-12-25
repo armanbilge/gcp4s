@@ -22,15 +22,15 @@ import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import fs2.Stream
 import gcp4s.bigquery.model.*
+import gcp4s.bigquery.syntax.*
+import gcp4s.json.given
+import io.circe.Codec
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import scodec.bits.ByteVector
-import io.circe.Codec
-import scala.concurrent.duration.*
-import gcp4s.json.given
-import gcp4s.bigquery.syntax.*
 
 import java.util.UUID
+import scala.concurrent.duration.*
 
 case class A(
     integer: Int,
