@@ -18,7 +18,12 @@ package gcp4s
 package bigquery
 
 import gcp4s.bigquery.model.DatasetList
+import gcp4s.bigquery.model.GetQueryResultsResponse
+import gcp4s.bigquery.model.JobList
+import gcp4s.bigquery.model.ProjectList
+import gcp4s.bigquery.model.TableDataList
 import gcp4s.bigquery.model.TableList
+import gcp4s.bigquery.model.TableRow
 import org.http4s.QueryParamEncoder
 import org.http4s.QueryParameterValue
 
@@ -38,3 +43,25 @@ private[bigquery] given QueryParamEncoder[Map[String, String]] =
       }
       .mkString(" ")
   }
+
+given Paginated[ProjectList] with
+  extension (pl: ProjectList) def pageToken = pl.nextPageToken
+
+given Paginated[DatasetList] with
+  extension (dl: DatasetList) def pageToken = dl.nextPageToken
+
+given Paginated[JobList] with
+  extension (jl: JobList) def pageToken = jl.nextPageToken
+
+given Paginated[TableList] with
+  extension (tl: TableList) def pageToken = tl.nextPageToken
+
+given Paginated[TableDataList] with
+  extension (tdl: TableDataList) def pageToken = tdl.pageToken
+
+given Paginated[GetQueryResultsResponse] with
+  extension (gqrs: GetQueryResultsResponse) def pageToken = gqrs.pageToken
+
+extension (row: TableRow)
+  def as[A](using d: TableRowDecoder[A]): Either[Throwable, A] =
+    d.decode(row)
