@@ -22,14 +22,15 @@ import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import fs2.Stream
 import gcp4s.bigquery.model.*
+import gcp4s.bigquery.syntax.*
+import gcp4s.json.given
+import io.circe.Codec
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import scodec.bits.ByteVector
-import io.circe.Codec
-import scala.concurrent.duration.*
-import gcp4s.json.given
 
 import java.util.UUID
+import scala.concurrent.duration.*
 
 case class A(
     integer: Int,
@@ -72,15 +73,12 @@ given Arbitrary[C] = Arbitrary(Gen.choose(-1e-28, 1e28).map(d => C(BigDecimal(d)
 
 class EndToEndSuite extends Gcp4sLiveSuite {
 
-  val dsl = googleClient.map(BigQueryDsl(_))
+  val bq = googleClient.map(BigQueryClient[IO](_))
 
   test("projects contains project id") {
-    dsl.flatMap { dsl =>
-      import dsl.*
-      import dsl.given
-
+    bq.flatMap { bq =>
       for
-        projectList <- projects.compile.toVector
+        projectList <- bq.projects.list.compile.toVector
         projectIds = projectList.flatMap(_.projects.toVector.flatten).flatMap(_.id)
         creds <- googleCredentials
       yield assert(projectIds.contains(creds.projectId))
@@ -88,10 +86,7 @@ class EndToEndSuite extends Gcp4sLiveSuite {
   }
 
   test("end-to-end") {
-    dsl.flatMap { dsl =>
-      import dsl.*
-      import dsl.given
-
+    bq.flatMap { bq =>
       for
         projectId <- googleCredentials.map(_.projectId)
         projectRef = ProjectReference(projectId = projectId.some)
@@ -102,12 +97,14 @@ class EndToEndSuite extends Gcp4sLiveSuite {
           ByteVector(uuid.getMostSignificantBits, uuid.getLeastSignificantBits).toHex
         }
         datasetRef = DatasetReference(projectId = projectId.some, datasetId = datasetId.some)
-        dataset <- Dataset(
-          datasetReference = datasetRef.some,
-          defaultTableExpirationMs = 1.hour.some).insert
+        dataset <- bq
+          .datasets
+          .insert(
+            Dataset(datasetReference = datasetRef.some, defaultTableExpirationMs = 1.hour.some))
         _ <- IO(dataset.datasetReference.contains(datasetRef)).assert
-        _ <- projectRef
-          .datasets()
+        _ <- bq
+          .datasets
+          .list(projectRef)
           .map(_.datasetReference)
           .flatMap(Stream.fromOption(_))
           .compile
@@ -118,10 +115,13 @@ class EndToEndSuite extends Gcp4sLiveSuite {
           projectId = projectId.some,
           datasetId = datasetId.some,
           tableId = tableId.some)
-        table <- Table(tableReference = tableRef.some, schema = schemaFor[A].some).insert
-        _ <- IO(table.tableReference.contains(tableRef)).assert
-        _ <- datasetRef
+        table <- bq
           .tables
+          .insert(Table(tableReference = tableRef.some, schema = schemaFor[A].some))
+        _ <- IO(table.tableReference.contains(tableRef)).assert
+        _ <- bq
+          .tables
+          .list(datasetRef)
           .map(_.tableReference)
           .flatMap(Stream.fromOption(_))
           .compile
@@ -137,11 +137,11 @@ class EndToEndSuite extends Gcp4sLiveSuite {
         )
         _ <- Stream
           .emits(rows)
-          .through(loadJob.uploadsAs())
+          .through(bq.jobs.uploadAs(loadJob))
           .flatMap { job =>
             Stream
               .fromOption(job.jobReference)
-              .evalMap(_.get)
+              .evalMap(bq.jobs.get(_))
               .repeat
               .metered(1.second)
               .find(_.status.flatMap(_.state).contains("DONE"))
@@ -149,19 +149,21 @@ class EndToEndSuite extends Gcp4sLiveSuite {
           }
           .compile
           .drain
-        _ <- tableRef.data.listAs[A]().compile.toVector.map(_.toSet == rows.toSet)
-        _ <- tableRef.delete
-        _ <- datasetRef
+        _ <- bq.tableData.listAs[A](tableRef).compile.toVector.map(_.toSet == rows.toSet)
+        _ <- bq.tables.delete(tableRef)
+        _ <- bq
           .tables
+          .list(datasetRef)
           .map(_.tableReference)
           .flatMap(Stream.fromOption(_))
           .compile
           .toVector
           .map(!_.contains(tableRef))
           .assert
-        _ <- datasetRef.delete()
-        _ <- projectRef
-          .datasets()
+        _ <- bq.datasets.delete(datasetRef)
+        _ <- bq
+          .datasets
+          .list(projectRef)
           .map(_.datasetReference)
           .flatMap(Stream.fromOption(_))
           .compile
