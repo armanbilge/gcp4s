@@ -53,7 +53,9 @@ val commonJSSettings = Seq(
 )
 
 lazy val root =
-  project.aggregate(core.jvm, core.js, bigQuery.jvm, bigQuery.js).enablePlugins(NoPublishPlugin)
+  project
+    .aggregate(core.jvm, core.js, bigQuery.jvm, bigQuery.js, trace.jvm, trace.js)
+    .enablePlugins(NoPublishPlugin)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
