@@ -99,13 +99,14 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
     discoveryPackage := "gcp4s.bigquery",
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
-      "dev.optics" %%% "monocle-core" % MonocleVersion
+      "dev.optics" %%% "monocle-core" % MonocleVersion,
+      "org.tpolecat" %%% "natchez-core" % NatchezVersion
     )
   )
   .settings(commonSettings)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
-  .dependsOn(core % "compile->compile;test->test")
+  .dependsOn(core % "compile->compile;test->test", trace % Test)
 
 lazy val trace = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)

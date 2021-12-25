@@ -35,6 +35,7 @@ import gcp4s.json.given
 import io.circe.Encoder
 import io.circe.syntax.*
 import monocle.syntax.all.focus
+import natchez.Trace
 import org.http4s.MediaType
 import org.http4s.Method.*
 import org.http4s.Uri
@@ -44,7 +45,7 @@ import org.http4s.syntax.all.*
 
 import scala.concurrent.duration.*
 
-final class BigQueryClient[F[_]](client: Client[F])(using F: Temporal[F])
+final class BigQueryClient[F[_]](client: Client[F])(using F: Temporal[F], trace: Trace[F])
     extends Http4sClientDsl[F]:
 
   val endpoint = uri"https://bigquery.googleapis.com/bigquery/v2/"
