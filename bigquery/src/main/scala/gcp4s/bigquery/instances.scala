@@ -61,4 +61,3 @@ given Paginated[TableDataList] with
 
 given Paginated[GetQueryResultsResponse] with
   extension (gqrs: GetQueryResultsResponse) def pageToken = gqrs.pageToken
-
