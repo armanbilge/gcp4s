@@ -65,14 +65,17 @@ private def encodeStackTrace(t: Throwable): StackTrace =
     }.toList
   }
 
-  StackTrace(t.hashCode.toLong.some, StackFrames(frame = stackFrames).some)
+  StackTrace(
+    stackTraceHashId = t.hashCode.toLong.some,
+    stackFrames = StackFrames(frame = stackFrames).some)
 
 private def encodeTruncatableString(s: String, maxBytes: Int): TruncatableString =
-  if s.length <= 4 * maxBytes then TruncatableString(s.some, 0.some)
+  if s.length <= 4 * maxBytes then
+    TruncatableString(value = s.some, truncatedByteCount = 0.some)
   else
     import StandardCharsets.UTF_8
     val b = s.getBytes(UTF_8)
-    if b.length <= maxBytes then TruncatableString(s.some, 0.some)
+    if b.length <= maxBytes then TruncatableString(value = s.some, truncatedByteCount = 0.some)
     else
       val bb = ByteBuffer.wrap(b, 0, maxBytes)
       val cb = CharBuffer.allocate(maxBytes)
@@ -81,4 +84,6 @@ private def encodeTruncatableString(s: String, maxBytes: Int): TruncatableString
       dec.decode(bb, cb, true)
       dec.flush(cb)
       val truncated = new String(cb.array, 0, cb.position())
-      TruncatableString(truncated.some, Some(b.length - truncated.getBytes(UTF_8).length))
+      TruncatableString(
+        value = truncated.some,
+        truncatedByteCount = Some(b.length - truncated.getBytes(UTF_8).length))
