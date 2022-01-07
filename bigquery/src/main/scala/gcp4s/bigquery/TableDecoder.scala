@@ -22,6 +22,7 @@ import gcp4s.bigquery.model.TableCell
 import gcp4s.bigquery.model.TableRow
 import io.circe.Decoder
 import io.circe.Json
+import io.circe.parser.parse
 import scodec.bits.ByteVector
 import shapeless3.deriving.K0
 
@@ -73,6 +74,7 @@ object TableCellDecoder:
   given TableCellDecoder[BigDecimal] = viaString(s => F.catchNonFatal(BigDecimal(s)))
   given TableCellDecoder[ByteVector] = viaString(
     ByteVector.fromBase64Descriptive(_).leftMap(new RuntimeException(_)))
+  given TableCellDecoder[Json] = viaString(parse(_))
 
   given TableCellDecoder[TableRow] with
     def decode(cell: TableCell) =

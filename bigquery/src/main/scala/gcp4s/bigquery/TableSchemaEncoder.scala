@@ -19,6 +19,7 @@ package gcp4s.bigquery
 import cats.syntax.all.*
 import gcp4s.bigquery.model.TableFieldSchema
 import gcp4s.bigquery.model.TableSchema
+import io.circe.Json
 import scodec.bits.ByteVector
 import shapeless3.deriving
 import shapeless3.deriving.K0
@@ -57,6 +58,7 @@ object TableFieldSchemaEncoder:
 
   given TableFieldSchemaEncoder[String] = Primitive("STRING")
   given TableFieldSchemaEncoder[ByteVector] = Primitive("BYTES")
+  given TableFieldSchemaEncoder[Json] = Primitive("JSON")
   given TableFieldSchemaEncoder[Int] = Primitive("INTEGER")
   given TableFieldSchemaEncoder[Long] = Primitive("INTEGER")
   given TableFieldSchemaEncoder[BigDecimal] = Primitive("NUMERIC")
