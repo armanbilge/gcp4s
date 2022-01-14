@@ -25,6 +25,8 @@ import gcp4s.bigquery.model.*
 import gcp4s.bigquery.syntax.*
 import gcp4s.json.given
 import io.circe.Codec
+import io.circe.Json
+import io.circe.testing.instances.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import scodec.bits.ByteVector
@@ -39,7 +41,8 @@ case class A(
     double: Double,
     string: String,
     boolean: Boolean,
-    record: B
+    record: B,
+    json: Json
 ) derives TableSchemaEncoder,
       TableRowDecoder,
       Codec.AsObject
@@ -52,7 +55,8 @@ given Arbitrary[A] = Arbitrary(
     s <- Arbitrary.arbitrary[String]
     b <- Arbitrary.arbitrary[Boolean]
     r <- Arbitrary.arbitrary[B]
-  yield A(i, l, f, d, s, b, r))
+    j <- Arbitrary.arbitrary[Json]
+  yield A(i, l, f, d, s, b, r, j))
 
 case class B(nullable: Option[String], bytes: ByteVector, repeated: Vector[C])
     derives TableFieldSchemaEncoder,
