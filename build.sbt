@@ -1,26 +1,14 @@
-ThisBuild / baseVersion := "0.1"
+ThisBuild / tlBaseVersion := "0.1"
 
 ThisBuild / organization := "com.armanbilge"
-ThisBuild / publishGithubUser := "armanbilge"
-ThisBuild / publishFullName := "Arman Bilge"
+ThisBuild / organizationName := "Arman Bilge"
+ThisBuild / developers += tlGitHubDev("armanbilge", "Arman Bilge")
 ThisBuild / startYear := Some(2021)
 
-ThisBuild / homepage := Some(url("https://github.com/armanbilge/gcp4s"))
-ThisBuild / scmInfo := Some(
-  ScmInfo(url("https://github.com/armanbilge/gcp4s"), "git@github.com:armanbilge/gcp4s.git"))
-sonatypeCredentialHost := "s01.oss.sonatype.org"
+ThisBuild / tlUntaggedAreSnapshots := false
+ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
-
-replaceCommandAlias(
-  "ci",
-  "; project /; headerCheckAll; scalafmtCheckAll; scalafmtSbtCheck; clean; testIfRelevant; mimaReportBinaryIssuesIfRelevant"
-)
-replaceCommandAlias(
-  "release",
-  "; reload; project /; +mimaReportBinaryIssuesIfRelevant; +publishIfRelevant; sonatypeBundleRelease"
-)
-addCommandAlias("prePR", "; root/clean; +root/scalafmtAll; scalafmtSbt; +root/headerCreate")
 
 val Scala3 = "3.1.0"
 ThisBuild / crossScalaVersions := Seq(Scala3)
@@ -39,11 +27,8 @@ val ScalaCheckEffectMunitVersion = "1.0.3"
 val ScodecBitsVersion = "1.1.30"
 val ShapelessVersion = "3.0.4"
 
-val commonSettings = Seq(
-  scalacOptions ++=
-    Seq("-new-syntax", "-indent", "-source:future", "-Xmax-inlines", "64"),
-  sonatypeCredentialHost := "s01.oss.sonatype.org"
-)
+ThisBuild / scalacOptions ++=
+  Seq("-new-syntax", "-indent", "-source:future", "-Xmax-inlines", "64")
 
 val commonJVMSettings = Seq(
   fork := true
@@ -52,10 +37,7 @@ val commonJSSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
-lazy val root =
-  project
-    .aggregate(core.jvm, core.js, bigQuery.jvm, bigQuery.js, trace.jvm, trace.js)
-    .enablePlugins(NoPublishPlugin)
+lazy val root = tlCrossRootProject.aggregate(core, bigQuery, trace)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
@@ -86,7 +68,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "ch.qos.logback" % "logback-classic" % "1.2.10" % Test
     )
   )
-  .settings(commonSettings)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
 
@@ -102,7 +83,6 @@ lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
       "dev.optics" %%% "monocle-core" % MonocleVersion
     )
   )
-  .settings(commonSettings)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
   .dependsOn(core % "compile->compile;test->test")
@@ -119,7 +99,6 @@ lazy val trace = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel" %%% "log4cats-core" % Log4CatsVersion
     )
   )
-  .settings(commonSettings)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
   .dependsOn(core % "compile->compile;test->test")
