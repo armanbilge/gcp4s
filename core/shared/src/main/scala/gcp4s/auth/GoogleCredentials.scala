@@ -129,26 +129,26 @@ object ComputeEngineCredentials:
 
 object OAuth2Credentials:
   private[auth] def apply[F[_]: Clock](pid: String, refresh: F[AccessToken])(
-      using F: Concurrent[F]): F[GoogleCredentials[F]] = for
-    token <- F.ref(Option.empty[F[AccessToken]])
-  yield new GoogleCredentials[F]:
-    val projectId = pid
+      using F: Concurrent[F]): F[GoogleCredentials[F]] =
+    for token <- F.ref(Option.empty[F[AccessToken]])
+    yield new GoogleCredentials[F]:
+      val projectId = pid
 
-    def get = for AccessToken(token, _) <- getToken
-    yield Credentials.Token(AuthScheme.Bearer, token)
+      def get = for AccessToken(token, _) <- getToken
+      yield Credentials.Token(AuthScheme.Bearer, token)
 
-    def getToken: F[AccessToken] = OptionT(token.get)
-      .semiflatMap(identity)
-      .flatMapF { token =>
-        for expired <- token.expiresSoon()
-        yield Option.unless(expired)(token)
-      }
-      .getOrElseF {
-        for
-          memo <- F.memoize(refresh)
-          updated <- token.tryUpdate(_ => Some(memo))
-          token <-
-            if updated then memo
-            else getToken
-        yield token
-      }
+      def getToken: F[AccessToken] = OptionT(token.get)
+        .semiflatMap(identity)
+        .flatMapF { token =>
+          for expired <- token.expiresSoon()
+          yield Option.unless(expired)(token)
+        }
+        .getOrElseF {
+          for
+            memo <- F.memoize(refresh)
+            updated <- token.tryUpdate(_ => Some(memo))
+            token <-
+              if updated then memo
+              else getToken
+          yield token
+        }
