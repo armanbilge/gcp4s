@@ -59,7 +59,6 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "org.http4s" %%% "http4s-dsl" % Http4sVersion % Test,
       "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test
     ),
-    buildInfoRenderFactory := sbtbuildinfo.Scala3CaseObjectRenderer.apply,
     buildInfoPackage := "gcp4s",
     buildInfoOptions += BuildInfoOption.PackagePrivate
   )
