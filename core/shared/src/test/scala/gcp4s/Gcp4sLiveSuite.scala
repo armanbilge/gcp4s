@@ -43,7 +43,7 @@ object Gcp4sLiveSuite:
     val deferred =
       Deferred.unsafe[IO, Either[Throwable, (Client[IO], GoogleCredentials[IO], Client[IO])]]
     val resource = for
-      ember <- EmberClientBuilder.default[IO].build
+      ember <- EmberClientBuilder.default[IO].withHttp2.build
       // NEVER log in CI, the output could compromise SERVICE_ACCOUNT_CREDENTIALS
       // .map(RequestLogger(false, false, logAction = Some(IO.println)))
       // .map(ResponseLogger(false, false, logAction = Some(IO.println)))
