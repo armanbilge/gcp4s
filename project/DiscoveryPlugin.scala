@@ -28,7 +28,7 @@ object DiscoveryPlugin extends AutoPlugin {
       val files = (Compile / managedSources).value
       files.map(f => (f, f.relativeTo(base).get.getPath))
     },
-    Compile / discoveryGenerate / fileInputs ++= (Compile / sourceDirectories)
+    Compile / discoveryGenerate / fileInputs ++= (Compile / unmanagedSourceDirectories)
       .value
       .map(_.getParentFile.toGlob / "discovery" / "*.json"),
     Compile / discoveryGenerate := {
