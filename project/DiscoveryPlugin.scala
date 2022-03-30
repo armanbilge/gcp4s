@@ -5,6 +5,8 @@ import io.circe._
 import io.circe.generic.auto._
 import sbt.Keys._
 import sbt._
+import sbt.nio._
+import sbt.nio.Keys._
 import cats.Traverse
 import org.jboss.dna.common.text.Inflector
 
@@ -14,49 +16,51 @@ object DiscoveryPlugin extends AutoPlugin {
 
   object autoImport extends scala.AnyRef {
     lazy val discoveryGenerate =
-      taskKey[Unit]("Generate Scala case classes for the given Discovery Document")
+      taskKey[Seq[File]]("Generate Scala case classes for the given Discovery Document")
     lazy val discoveryPackage = settingKey[String]("Package for generated sources")
   }
   import autoImport._
 
   override val projectSettings = Seq(
-    discoveryGenerate := discoveryTask.value,
-    Compile / sourceGenerators += discoveryTask.taskValue
-  )
-
-  lazy val discoveryTask: Def.Initialize[Task[Seq[File]]] = Def.task {
-    val f = (Compile / sourceDirectories)
+    Compile / sourceGenerators += Compile / discoveryGenerate,
+    Compile / packageSrc / mappings ++= {
+      val base = (Compile / sourceManaged).value
+      val files = (Compile / managedSources).value
+      files.map(f => (f, f.relativeTo(base).get.getPath))
+    },
+    Compile / discoveryGenerate / fileInputs ++= (Compile / sourceDirectories)
       .value
-      .map(_.getParentFile / "discovery" / "discovery.json")
-      .find(_.exists())
-      .get
-    val discovery = parser.decode[Discovery](IO.read(f)).fold(throw _, identity)
+      .map(_.getParentFile.toGlob / "discovery" / "*.json"),
+    Compile / discoveryGenerate := {
+      val f = (Compile / discoveryGenerate).inputFiles.head
+      val discovery = parser.decode[Discovery](IO.read(f.toFile)).fold(throw _, identity)
 
-    val models = discovery
-      .schemas
-      .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
-      .toList
-      .flatMap {
-        case (name, schema) =>
-          mkSchema(name, schema)
-      }
-      .map { caseClass =>
-        val f =
-          (Compile / sourceManaged).value / "discovery" / "model" / s"${caseClass.name}.scala"
-        IO.write(
-          f,
-          s"""|package ${discoveryPackage.value}.model
-              |
-              |import _root_.gcp4s.json.given
-              |
-              |$caseClass
-              |""".stripMargin
-        )
-        f
-      }
+      val models = discovery
+        .schemas
+        .filterKeys(!Set("JsonObject", "JsonValue").contains(_))
+        .toList
+        .flatMap {
+          case (name, schema) =>
+            mkSchema(name, schema)
+        }
+        .map { caseClass =>
+          val f =
+            (Compile / sourceManaged).value / "discovery" / "model" / s"${caseClass.name}.scala"
+          IO.write(
+            f,
+            s"""|package ${discoveryPackage.value}.model
+                |
+                |import _root_.gcp4s.json.given
+                |
+                |$caseClass
+                |""".stripMargin
+          )
+          f
+        }
 
-    models
-  }
+      models
+    }
+  )
 
   def mkSchema(name: String, schema: Schema): List[CaseClass] = {
     type F[A] = Writer[List[CaseClass], A]
