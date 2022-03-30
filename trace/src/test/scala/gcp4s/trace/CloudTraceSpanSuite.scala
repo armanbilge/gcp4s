@@ -18,25 +18,25 @@ package gcp4s.trace
 
 import cats.effect.IO
 import cats.effect.kernel.Resource
-import cats.effect.std.Queue
 import cats.effect.std.Random
 import cats.syntax.all.*
+import fs2.concurrent.Channel
 import munit.CatsEffectSuite
 import scodec.bits.ByteVector
 
 class CloudTraceSpanSuite extends CatsEffectSuite {
   test("serialize stack traces once") {
     Random.scalaUtilRandom[IO].flatMap { implicit random =>
-      Queue.unbounded[IO, model.Span].flatMap { queue =>
+      Channel.unbounded[IO, model.Span].flatMap { ch =>
         CloudTraceEntryPoint
-          .apply("projectId", queue, Sampler.always)
+          .apply("projectId", ch, Sampler.always)
           .root("root")
           .flatMap(_.span("level 1"))
           .flatMap(_.span("level 2"))
           .use(_ => IO.raiseError[Unit](new Exception))
           .attempt
           .void *>
-          queue.take.replicateA(3).map {
+          ch.stream.take(3).compile.toList.map {
             case first :: second :: third :: Nil =>
               val stackTraceHashId = first.stackTrace.flatMap(_.stackTraceHashId).get
               assert(first.stackTrace.isDefined)

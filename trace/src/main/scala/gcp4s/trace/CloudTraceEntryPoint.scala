@@ -21,10 +21,10 @@ import cats.data.OptionT
 import cats.effect.kernel.Clock
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
-import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import fs2.concurrent.Channel
 import natchez.EntryPoint
 import natchez.Kernel
 import natchez.Span
@@ -33,7 +33,7 @@ import scodec.bits.ByteVector
 
 final private class CloudTraceEntryPoint[F[_]: Clock: Random](
     projectId: String,
-    sink: QueueSink[F, model.Span],
+    sink: Channel[F, model.Span],
     sampler: Sampler[F])(using F: Concurrent[F])
     extends EntryPoint[F]:
 
