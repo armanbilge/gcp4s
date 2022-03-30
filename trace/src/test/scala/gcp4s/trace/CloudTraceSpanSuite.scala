@@ -47,7 +47,7 @@ class CloudTraceSpanSuite extends CatsEffectSuite {
               assertEquals(third.stackTrace.flatMap(_.stackTraceHashId), Some(stackTraceHashId))
               assert(third.stackTrace.flatMap(_.stackFrames).isEmpty)
               ()
-            case _ => IO(assert(false))
+            case _ => assert(false)
           }
       }
     }
