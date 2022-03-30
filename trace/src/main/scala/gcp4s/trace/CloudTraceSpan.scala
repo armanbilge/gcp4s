@@ -22,13 +22,13 @@ import cats.effect.kernel.Resource.ExitCase
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.RefSink
 import cats.effect.kernel.Clock
-import cats.effect.std.QueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import gcp4s.trace.model.Link
 import gcp4s.trace.model.StackTrace
 import gcp4s.trace.model.Links
+import fs2.concurrent.Channel
 import natchez.Kernel
 import natchez.Span
 import natchez.TraceValue
@@ -47,7 +47,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
     val attributes: Ref[F, Map[String, TraceValue]],
     val knownExceptions: Ref[F, Set[Int]],
     val startTime: FiniteDuration,
-    val sink: QueueSink[F, model.Span]
+    val sink: Channel[F, model.Span]
 )(using F: Concurrent[F])
     extends Span[F]:
 
@@ -81,7 +81,7 @@ final private class CloudTraceSpan[F[_]: Clock: Random](
 
 private object CloudTraceSpan:
   def apply[F[_]: Clock: Random](
-      sink: QueueSink[F, model.Span],
+      sink: Channel[F, model.Span],
       name: String,
       projectId: String,
       traceId: ByteVector,
@@ -160,6 +160,6 @@ private object CloudTraceSpan:
           sameProcessAsParentSpan = sameProcess.some
         )
 
-        _ <- sink.tryOffer(serialized).void
+        _ <- sink.trySend(serialized).void
       yield ()
     }

@@ -19,13 +19,11 @@ package gcp4s.trace
 import cats.effect.kernel.Clock
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.Resource
-import cats.effect.std.Queue
-import cats.effect.std.QueueSink
-import cats.effect.std.QueueSink.catsContravariantForQueueSink
 import cats.effect.std.Random
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Stream
+import fs2.concurrent.Channel
 import natchez.EntryPoint
 import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
@@ -36,10 +34,10 @@ object CloudTrace:
       projectId: String,
       sampler: Sampler[F])(using F: Concurrent[F]): Resource[F, EntryPoint[F]] =
     for
-      queue <- Queue.unbounded[F, Option[model.Span]].toResource
+      ch <- Channel.unbounded[F, model.Span].toResource
       traceClient = CloudTraceClient(client, projectId)
-      done <- Stream
-        .fromQueueNoneTerminated(queue)
+      done <- ch
+        .stream
         .chunks
         .evalMap(c => traceClient.batchWrite(c.toList))
         .attempt
@@ -53,7 +51,7 @@ object CloudTrace:
       entryPoint <- Resource.make(
         CloudTraceEntryPoint(
           projectId,
-          (queue: QueueSink[F, Option[model.Span]]).contramap(Some(_)),
+          ch,
           sampler
-        ).pure)(_ => queue.offer(None) *> done.void)
+        ).pure)(_ => ch.close *> done.void)
     yield entryPoint
