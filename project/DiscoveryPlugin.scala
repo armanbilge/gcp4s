@@ -23,6 +23,11 @@ object DiscoveryPlugin extends AutoPlugin {
 
   override val projectSettings = Seq(
     Compile / sourceGenerators += Compile / discoveryGenerate,
+    Compile / packageSrc / mappings ++= {
+      val base = (Compile / sourceManaged).value
+      val files = (Compile / managedSources).value
+      files.map(f => (f, f.relativeTo(base).get.getPath))
+    },
     Compile / discoveryGenerate / fileInputs ++= (Compile / sourceDirectories)
       .value
       .map(_.getParentFile.toGlob / "discovery" / "*.json"),
