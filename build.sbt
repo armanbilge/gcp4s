@@ -34,6 +34,9 @@ val commonJVMSettings = Seq(
   fork := true
 )
 val commonJSSettings = Seq(
+  libraryDependencies ++= Seq(
+    "org.scala-js" %%% "scalajs-java-securerandom" % "1.0.0" cross CrossVersion.for3Use2_13
+  ),
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
