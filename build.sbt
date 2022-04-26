@@ -24,7 +24,7 @@ val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.7"
 val NatchezVersion = "0.1.6"
 val ScalaCheckEffectMunitVersion = "1.0.3"
-val ScodecBitsVersion = "1.1.30"
+val ScodecBitsVersion = "1.1.31"
 val ShapelessVersion = "3.0.4"
 
 ThisBuild / scalacOptions ++=
