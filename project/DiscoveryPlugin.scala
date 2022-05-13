@@ -152,6 +152,6 @@ object DiscoveryPlugin extends AutoPlugin {
       .getOrElse(Writer(Nil, "_root_.io.circe.Json"))
   }
 
-  private val inflector = new Inflector()
+  private val inflector = new Inflector
 
 }
