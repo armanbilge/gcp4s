@@ -25,7 +25,7 @@ import gcp4s.auth.GoogleCredentials
 import gcp4s.auth.GoogleOAuth2
 import gcp4s.auth.ServiceAccountCredentials
 import gcp4s.auth.ServiceAccountCredentialsFile
-import io.circe.parser
+import io.circe.jawn
 import munit.CatsEffectSuite
 import org.http4s.client.Client
 import org.http4s.client.middleware.RequestLogger
@@ -49,7 +49,7 @@ object Gcp4sLiveSuite:
       // .map(ResponseLogger(false, false, logAction = Some(IO.println)))
       ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- IO
         .fromEither(
-          parser.decode[ServiceAccountCredentialsFile](
+          jawn.decode[ServiceAccountCredentialsFile](
             platform.env("SERVICE_ACCOUNT_CREDENTIALS")))
         .toResource
       client = Retry(GoogleRetryPolicy.Default.toRetryPolicy[IO])(
