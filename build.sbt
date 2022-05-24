@@ -15,7 +15,7 @@ ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.7.0"
 val CatsEffectVersion = "3.3.12"
-val CirceVersion = "0.15.0-M1"
+val CirceVersion = "0.14.2"
 val Fs2Version = "3.2.7"
 val Http4sVersion = "0.23.12"
 val Log4CatsVersion = "2.3.1"
@@ -50,7 +50,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
       "co.fs2" %%% "fs2-io" % Fs2Version,
       "org.http4s" %%% "http4s-client" % Http4sVersion,
       "org.http4s" %%% "http4s-circe" % Http4sVersion,
-      "io.circe" %%% "circe-parser" % CirceVersion,
+      "io.circe" %%% "circe-jawn" % CirceVersion,
       "io.circe" %%% "circe-scodec" % CirceVersion,
       "org.scodec" %%% "scodec-bits" % ScodecBitsVersion,
       "org.scalameta" %%% "munit" % MunitVersion % Test,
