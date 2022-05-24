@@ -1,4 +1,4 @@
-val circeVersion = "0.14.1"
+val circeVersion = "0.14.2"
 libraryDependencies ++= Seq(
   "io.circe" %% "circe-core" % circeVersion,
   "io.circe" %% "circe-generic" % circeVersion,
