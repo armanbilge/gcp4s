@@ -17,7 +17,7 @@
 package gcp4s.bigquery
 
 import gcp4s.bigquery.model.TableRow
-import io.circe.parser
+import io.circe.jawn
 import munit.FunSuite
 
 class TableDecoderSuite extends FunSuite:
@@ -63,7 +63,7 @@ class TableDecoderSuite extends FunSuite:
 
   test("TableDecoder understands BigQuery") {
     assertEquals(
-      parser.decode[TableRow](json).flatMap(TableRowDecoder[Record].decode),
+      jawn.decode[TableRow](json).flatMap(TableRowDecoder[Record].decode),
       Right(
         Record(
           Some("Peter"),
