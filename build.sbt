@@ -7,6 +7,7 @@ ThisBuild / startYear := Some(2021)
 
 ThisBuild / tlUntaggedAreSnapshots := false
 ThisBuild / tlSonatypeUseLegacyHost := false
+ThisBuild / tlCiReleaseBranches += "topic/2.13"
 
 ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
 
