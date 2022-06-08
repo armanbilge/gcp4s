@@ -20,6 +20,7 @@ package auth
 import cats.effect.IO
 import cats.syntax.all.*
 import munit.CatsEffectSuite
+import munit.Location
 import munit.ScalaCheckEffectSuite
 import org.http4s.Credentials
 import org.scalacheck.effect.PropF
@@ -27,6 +28,8 @@ import org.scalacheck.effect.PropF
 import scala.concurrent.duration.*
 
 class GoogleCredentialsSuite extends CatsEffectSuite, ScalaCheckEffectSuite, Gcp4sLiveSuite:
+
+  given Location = Location.empty
 
   test("queue requests until token arrives, then respond") {
     PropF.forAllF { (x: List[Unit]) =>

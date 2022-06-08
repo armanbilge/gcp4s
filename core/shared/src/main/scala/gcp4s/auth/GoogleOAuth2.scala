@@ -22,6 +22,7 @@ import cats.syntax.all.*
 import io.circe.Encoder
 import org.http4s.Method.POST
 import org.http4s.Request
+import org.http4s.Uri
 import org.http4s.UrlForm
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
@@ -41,7 +42,7 @@ trait GoogleOAuth2[F[_]]:
 object GoogleOAuth2:
   def apply[F[_]: Concurrent: Clock: Jwt](client: Client[F]): GoogleOAuth2[F] =
     new GoogleOAuth2 with Http4sClientDsl[F]:
-      val endpoint = uri"https://oauth2.googleapis.com/token"
+      val endpoint = Uri.unsafeFromString("https://oauth2.googleapis.com/token")
       def getAccessToken(
           clientEmail: String,
           privateKey: ByteVector,
@@ -62,4 +63,7 @@ object GoogleOAuth2:
         accessToken <- client.expect[AccessToken](request)
       yield accessToken
 
-  final private case class JwtClaimContent(scope: String) derives Encoder.AsObject
+  final private case class JwtClaimContent(scope: String)
+
+  private object JwtClaimContent:
+    given Encoder.AsObject[JwtClaimContent] = Encoder.forProduct1("scope")(_.scope)

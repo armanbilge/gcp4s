@@ -47,4 +47,8 @@ final private[auth] case class AccessTokenResponse(
     access_token: String,
     token_type: String,
     expires_in: Int)
-    derives Decoder
+
+object AccessTokenResponse:
+  given Decoder[AccessTokenResponse] =
+    Decoder.forProduct3("access_token", "token_type", "expires_in")(
+      AccessTokenResponse(_, _, _))

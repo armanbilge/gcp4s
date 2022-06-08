@@ -118,7 +118,11 @@ final case class ServiceAccountCredentialsFile(
     project_id: String,
     client_email: String,
     private_key: String)
-    derives Decoder
+
+object ServiceAccountCredentialsFile:
+  given Decoder[ServiceAccountCredentialsFile] =
+    Decoder.forProduct3("product_id", "client_email", "private_key")(
+      ServiceAccountCredentialsFile(_, _, _))
 
 object ComputeEngineCredentials:
   def apply[F[_]: Concurrent: Clock](metadata: ComputeMetadata[F]): F[GoogleCredentials[F]] =

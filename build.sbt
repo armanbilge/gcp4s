@@ -37,7 +37,7 @@ val commonJSSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
-lazy val root = tlCrossRootProject.aggregate(core, bigQuery, trace)
+lazy val root = tlCrossRootProject.aggregate(core)
 
 lazy val core = crossProject(JVMPlatform, JSPlatform)
   .in(file("core"))
@@ -45,19 +45,19 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .settings(
     name := "gcp4s",
     libraryDependencies ++= Seq(
-      "org.typelevel" %%% "cats-core" % CatsVersion,
-      "org.typelevel" %%% "cats-effect" % CatsEffectVersion,
-      "co.fs2" %%% "fs2-io" % Fs2Version,
-      "org.http4s" %%% "http4s-client" % Http4sVersion,
-      "org.http4s" %%% "http4s-circe" % Http4sVersion,
-      "io.circe" %%% "circe-jawn" % CirceVersion,
-      "io.circe" %%% "circe-scodec" % CirceVersion,
-      "org.scodec" %%% "scodec-bits" % ScodecBitsVersion,
-      "org.scalameta" %%% "munit" % MunitVersion % Test,
-      "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test,
-      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test,
-      "org.http4s" %%% "http4s-dsl" % Http4sVersion % Test,
-      "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test
+      "org.typelevel" %%% "cats-core" % CatsVersion cross CrossVersion.for3Use2_13,
+      "org.typelevel" %%% "cats-effect" % CatsEffectVersion cross CrossVersion.for3Use2_13,
+      "co.fs2" %%% "fs2-io" % Fs2Version cross CrossVersion.for3Use2_13,
+      "org.http4s" %%% "http4s-client" % Http4sVersion cross CrossVersion.for3Use2_13,
+      "org.http4s" %%% "http4s-circe" % Http4sVersion cross CrossVersion.for3Use2_13,
+      "io.circe" %%% "circe-jawn" % CirceVersion cross CrossVersion.for3Use2_13,
+      "io.circe" %%% "circe-scodec" % CirceVersion cross CrossVersion.for3Use2_13,
+      "org.scodec" %%% "scodec-bits" % ScodecBitsVersion cross CrossVersion.for3Use2_13,
+      "org.scalameta" %%% "munit" % MunitVersion % Test cross CrossVersion.for3Use2_13,
+      "org.typelevel" %%% "munit-cats-effect-3" % MunitCE3Version % Test cross CrossVersion.for3Use2_13,
+      "org.typelevel" %%% "scalacheck-effect-munit" % ScalaCheckEffectMunitVersion % Test cross CrossVersion.for3Use2_13,
+      "org.http4s" %%% "http4s-dsl" % Http4sVersion % Test cross CrossVersion.for3Use2_13,
+      "org.http4s" %%% "http4s-ember-client" % Http4sVersion % Test cross CrossVersion.for3Use2_13
     ),
     buildInfoPackage := "gcp4s",
     buildInfoOptions += BuildInfoOption.PackagePrivate
@@ -70,34 +70,34 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
 
-lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("bigquery"))
-  .enablePlugins(DiscoveryPlugin)
-  .settings(
-    name := "gcp4s-bigquery",
-    discoveryPackage := "gcp4s.bigquery",
-    libraryDependencies ++= Seq(
-      "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
-      "dev.optics" %%% "monocle-core" % MonocleVersion
-    )
-  )
-  .jvmSettings(commonJVMSettings)
-  .jsSettings(commonJSSettings)
-  .dependsOn(core % "compile->compile;test->test")
+// lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
+//   .crossType(CrossType.Pure)
+//   .in(file("bigquery"))
+//   .enablePlugins(DiscoveryPlugin)
+//   .settings(
+//     name := "gcp4s-bigquery",
+//     discoveryPackage := "gcp4s.bigquery",
+//     libraryDependencies ++= Seq(
+//       "org.typelevel" %%% "shapeless3-deriving" % ShapelessVersion,
+//       "dev.optics" %%% "monocle-core" % MonocleVersion
+//     )
+//   )
+//   .jvmSettings(commonJVMSettings)
+//   .jsSettings(commonJSSettings)
+//   .dependsOn(core % "compile->compile;test->test")
 
-lazy val trace = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("trace"))
-  .enablePlugins(DiscoveryPlugin)
-  .settings(
-    name := "gcp4s-trace",
-    discoveryPackage := "gcp4s.trace",
-    libraryDependencies ++= Seq(
-      "org.tpolecat" %%% "natchez-core" % NatchezVersion,
-      "org.typelevel" %%% "log4cats-core" % Log4CatsVersion
-    )
-  )
-  .jvmSettings(commonJVMSettings)
-  .jsSettings(commonJSSettings)
-  .dependsOn(core % "compile->compile;test->test")
+// lazy val trace = crossProject(JVMPlatform, JSPlatform)
+//   .crossType(CrossType.Pure)
+//   .in(file("trace"))
+//   .enablePlugins(DiscoveryPlugin)
+//   .settings(
+//     name := "gcp4s-trace",
+//     discoveryPackage := "gcp4s.trace",
+//     libraryDependencies ++= Seq(
+//       "org.tpolecat" %%% "natchez-core" % NatchezVersion,
+//       "org.typelevel" %%% "log4cats-core" % Log4CatsVersion
+//     )
+//   )
+//   .jvmSettings(commonJVMSettings)
+//   .jsSettings(commonJSSettings)
+//   .dependsOn(core % "compile->compile;test->test")

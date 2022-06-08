@@ -43,7 +43,8 @@ object ComputeMetadata:
     new ComputeMetadata[F]:
       val `Metadata-Flavor` = Header.Raw(ci"Metadata-Flavor", "Google")
       val headers = Headers(`Metadata-Flavor`)
-      val baseUri: Uri = uri"http://metadata.google.internal/computeMetadata/v1"
+      val baseUri: Uri =
+        Uri.unsafeFromString("http://metadata.google.internal/computeMetadata/v1")
       def mkRequest(path: String) = Request[F](uri = baseUri / path, headers = headers)
 
       def get(path: String): F[String] = client.expect[String](mkRequest(path))

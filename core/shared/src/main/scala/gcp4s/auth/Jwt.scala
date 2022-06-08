@@ -20,7 +20,7 @@ package auth
 import cats.MonadThrow
 import cats.effect.kernel.Clock
 import cats.syntax.all.*
-import io.circe.Codec
+import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.syntax.*
 import scodec.bits.ByteVector
@@ -40,10 +40,17 @@ object Jwt extends JwtCompanionPlatform:
   inline def apply[F[_]](using jwt: Jwt[F]): jwt.type = jwt
 
 abstract private[auth] class UnsealedJwt[F[_]: Clock](using F: MonadThrow[F]) extends Jwt[F]:
-  final case class Header(alg: String = "RS256", typ: String = "JWT") derives Codec.AsObject
+  final case class Header(alg: String = "RS256", typ: String = "JWT")
+  object Header:
+    given Decoder[Header] = Decoder.forProduct2("alg", "typ")(Header(_, _))
+    given Encoder.AsObject[Header] = Encoder.forProduct2("alg", "typ")(h => (h.alg, h.typ))
   val header = ByteVector.encodeAscii(Header().asJson.noSpaces).toOption.get.toBase64UrlNoPad
 
-  final case class Claim(iss: String, aud: String, exp: Long, iat: Long) derives Codec.AsObject
+  final case class Claim(iss: String, aud: String, exp: Long, iat: Long)
+  object Claim:
+    given Decoder[Claim] = Decoder.forProduct4("iss", "aud", "exp", "iat")(Claim(_, _, _, _))
+    given Encoder.AsObject[Claim] =
+      Encoder.forProduct4("iss", "aud", "exp", "iat")(c => (c.iss, c.aud, c.exp, c.iat))
 
   def sign[A: Encoder.AsObject](
       payload: A,
