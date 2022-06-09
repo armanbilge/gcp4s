@@ -121,7 +121,7 @@ final case class ServiceAccountCredentialsFile(
 
 object ServiceAccountCredentialsFile:
   given Decoder[ServiceAccountCredentialsFile] =
-    Decoder.forProduct3("product_id", "client_email", "private_key")(
+    Decoder.forProduct3("project_id", "client_email", "private_key")(
       ServiceAccountCredentialsFile(_, _, _))
 
 object ComputeEngineCredentials:

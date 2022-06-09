@@ -44,6 +44,6 @@ class GoogleCredentialsSuite extends CatsEffectSuite, ScalaCheckEffectSuite, Gcp
     }
   }
 
-  test("successfully obtain a live access token".ignore) {
+  test("successfully obtain a live access token") {
     googleCredentials.flatMap(_.get)
   }
