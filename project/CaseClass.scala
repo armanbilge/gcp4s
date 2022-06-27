@@ -6,7 +6,11 @@ case class CaseClass(
     val name = Sanitize(this.name)
     s"""|final case class $name(
         |${parameters.map("  " + _).mkString(",\n")}
-        |) derives _root_.io.circe.Codec.AsObject
+        |)
+        |
+        |object $name {
+        |  implicit val ${name}Codec: _root_.io.circe.Codec[$name] = _root_.io.circe.generic.semiauto.deriveCodec
+        |}
         |""".stripMargin
   }
 }

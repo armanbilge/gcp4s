@@ -50,7 +50,7 @@ object DiscoveryPlugin extends AutoPlugin {
             f,
             s"""|package ${discoveryPackage.value}.model
                 |
-                |import _root_.gcp4s.json.given
+                |import _root_.io.circe.scodec._
                 |
                 |$caseClass
                 |""".stripMargin
