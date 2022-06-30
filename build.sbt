@@ -72,6 +72,24 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
 
+// ideally this would dependOn(core), but I can't find a way to do it with CrossVersion.for3Use2_13
+val `drive-client` = crossProject(JVMPlatform, JSPlatform)
+  .in(file("google-drive"))
+  .enablePlugins(DiscoveryPlugin)
+  .settings(
+    name := "gcp4s-drive",
+    discoveryPackage := "gcp4s.drive",
+    crossScalaVersions := Seq("2.13.8"),
+    scalacOptions := List("-encoding", "utf8", "-feature", "-unchecked", "-language:existentials", "-language:experimental.macros", "-language:higherKinds", "-language:implicitConversions", "-Xcheckinit", "-Xlint:adapted-args", "-Xlint:constant", "-Xlint:delayedinit-select", "-Xlint:deprecation", "-Xlint:doc-detached", "-Xlint:implicit-recursion", "-Xlint:implicit-not-found", "-Xlint:inaccessible", "-Xlint:infer-any", "-Xlint:missing-interpolator", "-Xlint:nullary-unit", "-Xlint:option-implicit", "-Xlint:package-object-classes", "-Xlint:poly-implicit-overload", "-Xlint:private-shadow", "-Xlint:stars-align", "-Xlint:strict-unsealed-patmat", "-Xlint:type-parameter-shadow", "-Xlint:-byname-implicit", "-Wdead-code", "-Wextra-implicit", "-Wnumeric-widen", "-Wvalue-discard", "-Wunused:nowarn", "-Wunused:implicits", "-Wunused:explicits", "-Wunused:locals", "-Wunused:params", "-Wunused:patvars", "-Wunused:privates", "-Xfatal-warnings"),
+    libraryDependencies ++= {
+      Seq(
+        "io.circe" %% "circe-generic" % "0.14.2" cross CrossVersion.for3Use2_13,
+        "io.circe" %% "circe-scodec" % "0.14.2" cross CrossVersion.for3Use2_13,
+        "org.scodec" %% "scodec-bits" % "1.1.34" cross CrossVersion.for3Use2_13,
+      )
+    }
+  )
+
 // lazy val bigQuery = crossProject(JVMPlatform, JSPlatform)
 //   .crossType(CrossType.Pure)
 //   .in(file("bigquery"))
