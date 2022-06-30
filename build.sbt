@@ -45,6 +45,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   .enablePlugins(BuildInfoPlugin)
   .settings(
     name := "gcp4s",
+    crossVersion := CrossVersion.for3Use2_13,
     libraryDependencies ++= Seq(
       "org.typelevel" %%% "cats-core" % CatsVersion cross CrossVersion.for3Use2_13,
       "org.typelevel" %%% "cats-effect" % CatsEffectVersion cross CrossVersion.for3Use2_13,
