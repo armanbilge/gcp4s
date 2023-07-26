@@ -32,12 +32,25 @@ import org.http4s.client.middleware.RequestLogger
 import org.http4s.client.middleware.ResponseLogger
 import org.http4s.client.middleware.Retry
 import org.http4s.ember.client.EmberClientBuilder
+import cats.effect.std.Env
+import cats.effect.kernel.Resource
 
 object Gcp4sLiveSuite:
   val scopes = List(
     "https://www.googleapis.com/auth/bigquery",
     "https://www.googleapis.com/auth/trace.append"
   )
+
+  private def credentials: Resource[IO, ServiceAccountCredentialsFile] =
+    Env
+      .make[IO]
+      .get("SERVICE_ACCOUNT_CREDENTIALS")
+      .map(
+        _.toRight(new Exception("Could not find 'SERVICE_ACCOUNT_CREDENTIALS' in ENV")).flatMap(
+          jawn.decode[ServiceAccountCredentialsFile])
+      )
+      .flatMap(IO.fromEither)
+      .toResource
 
   private lazy val setup: IO[(Client[IO], GoogleCredentials[IO], Client[IO])] =
     val deferred =
@@ -47,11 +60,7 @@ object Gcp4sLiveSuite:
       // NEVER log in CI, the output could compromise SERVICE_ACCOUNT_CREDENTIALS
       // .map(RequestLogger(false, false, logAction = Some(IO.println)))
       // .map(ResponseLogger(false, false, logAction = Some(IO.println)))
-      ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- IO
-        .fromEither(
-          jawn.decode[ServiceAccountCredentialsFile](
-            platform.env("SERVICE_ACCOUNT_CREDENTIALS")))
-        .toResource
+      ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- credentials
       client = Retry(GoogleRetryPolicy.Default.toRetryPolicy[IO])(
         GoogleSystemParameters[IO]()(ember))
       creds <- ServiceAccountCredentials(
@@ -61,9 +70,8 @@ object Gcp4sLiveSuite:
         privateKey,
         scopes).toResource
       googleClient = creds.middleware(client)
-      _ <- deferred.complete(Right((ember, creds, googleClient))).toResource
-    yield ()
-    resource.useForever.unsafeRunAndForget()
+    yield (ember, creds, googleClient)
+    resource.attempt.use(deferred.complete(_) *> IO.never).unsafeRunAndForget()
     deferred.get.rethrow
 
 trait Gcp4sLiveSuite extends CatsEffectSuite:
