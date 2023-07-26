@@ -35,6 +35,7 @@ import gcp4s.json.given
 import io.circe.Encoder
 import io.circe.syntax.*
 import monocle.syntax.all.focus
+import org.http4s.EntityDecoder
 import org.http4s.MediaType
 import org.http4s.Method.*
 import org.http4s.Uri
@@ -79,7 +80,7 @@ final class BigQueryClient[F[_]](client: Client[F])(using F: Temporal[F])
     def get(dataset: DatasetReference): F[Dataset] = client.expect(GET(uri(dataset)))
 
     def delete(dataset: DatasetReference, deleteContents: Option[Boolean] = None): F[Unit] =
-      client.expect(DELETE(uri(dataset)))
+      client.expect(DELETE(uri(dataset)))(EntityDecoder.void)
 
     def insert(dataset: Dataset): F[Dataset] =
       client.expect(POST(dataset, uri(dataset.datasetReference.get.copy(datasetId = None))))
@@ -104,7 +105,7 @@ final class BigQueryClient[F[_]](client: Client[F])(using F: Temporal[F])
 
     def get(table: TableReference): F[Table] = client.expect(GET(uri(table)))
 
-    def delete(table: TableReference): F[Unit] = client.expect(DELETE(uri(table)))
+    def delete(table: TableReference): F[Unit] = client.expect(DELETE(uri(table)))(EntityDecoder.void)
 
     def insert(table: Table): F[Table] =
       client.expect(POST(table, uri(table.tableReference.get.copy(tableId = None))))
