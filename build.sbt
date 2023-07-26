@@ -10,15 +10,15 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
 
-val Scala3 = "3.2.2"
+val Scala3 = "3.3.0"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.9.0"
-val CatsEffectVersion = "3.4.6"
+val CatsEffectVersion = "3.5.1"
 val CirceVersion = "0.14.3"
-val Fs2Version = "3.5.0"
+val Fs2Version = "3.7.0"
 val Http4sVersion = "0.23.18"
-val Log4CatsVersion = "2.5.0"
+val Log4CatsVersion = "2.6.0"
 val MonocleVersion = "3.2.0"
 val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.7"
@@ -64,7 +64,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.11" % Test
+      "ch.qos.logback" % "logback-classic" % "1.2.12" % Test
     )
   )
   .jvmSettings(commonJVMSettings)
