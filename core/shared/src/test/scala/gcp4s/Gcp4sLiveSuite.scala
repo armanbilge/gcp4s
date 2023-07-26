@@ -18,6 +18,7 @@ package gcp4s
 
 import cats.effect.IO
 import cats.effect.kernel.Deferred
+import cats.effect.kernel.Resource
 import cats.effect.std.Env
 import cats.effect.syntax.all.*
 import cats.effect.unsafe.implicits.*
@@ -33,8 +34,6 @@ import org.http4s.client.middleware.RequestLogger
 import org.http4s.client.middleware.ResponseLogger
 import org.http4s.client.middleware.Retry
 import org.http4s.ember.client.EmberClientBuilder
-import cats.effect.std.Env
-import cats.effect.kernel.Resource
 
 object Gcp4sLiveSuite:
   val scopes = List(
