@@ -22,6 +22,7 @@ import cats.data.OptionT
 import cats.effect.kernel.Clock
 import cats.effect.kernel.Concurrent
 import cats.effect.kernel.MonadCancelThrow
+import cats.effect.std.Env
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.CompositeFailure
@@ -51,15 +52,12 @@ trait GoogleCredentials[F[_]]:
       }
 
 object ApplicationDefaultCredentials:
-  def apply[F[_]: Clock: Files: Jwt](client: Client[F], scopes: Seq[String])(
+  def apply[F[_]: Clock: Env: Files: Jwt](client: Client[F], scopes: Seq[String])(
       using F: Concurrent[F]): F[GoogleCredentials[F]] =
     val serviceAccountCredentials =
       for
-        json <- Files[F]
-          .readAll(getWellKnownCredentials)
-          .through(text.utf8.decode)
-          .compile
-          .foldMonoid
+        credentialsPath <- getWellKnownCredentials
+        json <- Files[F].readUtf8(credentialsPath).compile.string
         ServiceAccountCredentialsFile(projectId, clientEmail, privateKey) <- jawn
           .decode[ServiceAccountCredentialsFile](json)
           .liftTo[F]

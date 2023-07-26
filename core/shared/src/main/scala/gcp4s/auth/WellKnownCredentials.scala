@@ -17,16 +17,19 @@
 package gcp4s
 package auth
 
+import cats.Monad
+import cats.data.OptionT
+import cats.effect.std.Env
+import cats.syntax.all.*
+import fs2.io.file.Files
 import fs2.io.file.Path
 
-private[auth] def getWellKnownCredentials: Path =
-  platform
-    .env
-    .get("CLOUDSDK_CONFIG")
+private[auth] def getWellKnownCredentials[F[_]: Monad: Env: Files]: F[Path] =
+  OptionT(Env[F].get("CLOUDSDK_CONFIG"))
     .map(Path(_))
     .orElse {
-      Option.when(platform.windows) {
-        Path(platform.env("APPDATA")) / "gcloud"
-      }
+      if platform.windows then OptionT(Env[F].get("APPDATA")).map(Path(_) / "gcloud")
+      else OptionT.none
     }
-    .getOrElse(platform.home / ".config" / "gcloud") / "application_default_credentials.json"
+    .getOrElseF(
+      Files[F].userHome.map(_ / ".config" / "gcloud" / "application_default_credentials.json"))
