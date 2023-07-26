@@ -105,7 +105,8 @@ final class BigQueryClient[F[_]](client: Client[F])(using F: Temporal[F])
 
     def get(table: TableReference): F[Table] = client.expect(GET(uri(table)))
 
-    def delete(table: TableReference): F[Unit] = client.expect(DELETE(uri(table)))(EntityDecoder.void)
+    def delete(table: TableReference): F[Unit] =
+      client.expect(DELETE(uri(table)))(EntityDecoder.void)
 
     def insert(table: Table): F[Table] =
       client.expect(POST(table, uri(table.tableReference.get.copy(tableId = None))))
