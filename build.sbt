@@ -10,7 +10,7 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
 
-val Scala3 = "3.2.2"
+val Scala3 = "3.3.0"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.9.0"
