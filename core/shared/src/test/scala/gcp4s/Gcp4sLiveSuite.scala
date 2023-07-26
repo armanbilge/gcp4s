@@ -42,8 +42,7 @@ object Gcp4sLiveSuite:
   )
 
   private def credentials: Resource[IO, ServiceAccountCredentialsFile] =
-    Env
-      .make[IO]
+    Env[IO]
       .get("SERVICE_ACCOUNT_CREDENTIALS")
       .map(
         _.toRight(new Exception("Could not find 'SERVICE_ACCOUNT_CREDENTIALS' in ENV")).flatMap(
