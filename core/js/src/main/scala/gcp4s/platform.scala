@@ -22,17 +22,9 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
 private[gcp4s] object platform:
-  def env = process.env
-  def home = Path(os.homedir())
   def windows = os.platform() == "wind32"
 
 @js.native
 @JSImport("os", JSImport.Default)
 private[gcp4s] object os extends js.Object:
-  def homedir(): String = js.native
   def platform(): String = js.native
-
-@js.native
-@JSImport("process", JSImport.Default)
-private[gcp4s] object process extends js.Object:
-  def env: js.Dictionary[String] = js.native

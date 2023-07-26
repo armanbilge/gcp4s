@@ -21,6 +21,4 @@ import fs2.io.file.Path
 import scala.util.Properties
 
 private[gcp4s] object platform:
-  def env = sys.env
-  def home = Path(Properties.userHome)
   def windows = Properties.isWin

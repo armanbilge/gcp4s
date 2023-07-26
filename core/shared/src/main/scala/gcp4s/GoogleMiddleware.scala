@@ -19,6 +19,7 @@ package gcp4s
 import cats.effect.SyncIO
 import cats.effect.kernel.MonadCancelThrow
 import cats.effect.kernel.Temporal
+import cats.effect.std.Env
 import cats.syntax.all.*
 import fs2.io.file.Files
 import gcp4s.auth.ApplicationDefaultCredentials
@@ -38,7 +39,8 @@ import java.util.concurrent.ThreadLocalRandom
 import scala.concurrent.duration.*
 
 object GoogleMiddleware:
-  def apply[F[_]: Temporal: Files: Jwt](scopes: Seq[String])(client: Client[F]): F[Client[F]] =
+  def apply[F[_]: Temporal: Env: Files: Jwt](scopes: Seq[String])(
+      client: Client[F]): F[Client[F]] =
     val googleClient =
       Retry(GoogleRetryPolicy.Default.toRetryPolicy[F])(GoogleSystemParameters[F]()(client))
     for credentials <- ApplicationDefaultCredentials[F](googleClient, scopes)

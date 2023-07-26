@@ -18,6 +18,7 @@ package gcp4s
 
 import cats.effect.IO
 import cats.effect.kernel.Deferred
+import cats.effect.std.Env
 import cats.effect.syntax.all.*
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
