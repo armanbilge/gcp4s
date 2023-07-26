@@ -101,3 +101,8 @@ lazy val trace = crossProject(JVMPlatform, JSPlatform)
   .jvmSettings(commonJVMSettings)
   .jsSettings(commonJSSettings)
   .dependsOn(core % "compile->compile;test->test")
+
+lazy val docs = project
+  .in(file("site"))
+  .enablePlugins(TypelevelSitePlugin)
+  .dependsOn(core.jvm)
