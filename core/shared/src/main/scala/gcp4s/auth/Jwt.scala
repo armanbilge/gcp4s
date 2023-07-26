@@ -23,7 +23,7 @@ import cats.syntax.all.*
 import io.circe.Codec
 import io.circe.Encoder
 import io.circe.syntax.*
-import scodec.bits.ByteVector
+import scodec.bits.*
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -40,8 +40,7 @@ object Jwt extends JwtCompanionPlatform:
   inline def apply[F[_]](using jwt: Jwt[F]): jwt.type = jwt
 
 abstract private[auth] class UnsealedJwt[F[_]: Clock](using F: MonadThrow[F]) extends Jwt[F]:
-  final case class Header(alg: String = "RS256", typ: String = "JWT") derives Codec.AsObject
-  val header = ByteVector.encodeAscii(Header().asJson.noSpaces).toOption.get.toBase64UrlNoPad
+  val header = asciiBytes"""{"alg":"RS256","typ":"JWT"}""".toBase64UrlNoPad
 
   final case class Claim(iss: String, aud: String, exp: Long, iat: Long) derives Codec.AsObject
 
