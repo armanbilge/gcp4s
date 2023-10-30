@@ -10,13 +10,13 @@ ThisBuild / tlSonatypeUseLegacyHost := false
 
 ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.SERVICE_ACCOUNT_CREDENTIALS }}"
 
-val Scala3 = "3.3.0"
+val Scala3 = "3.3.1"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.9.0"
-val CatsEffectVersion = "3.5.1"
+val CatsEffectVersion = "3.5.2"
 val CirceVersion = "0.14.5"
-val Fs2Version = "3.7.0"
+val Fs2Version = "3.9.2"
 val Http4sVersion = "0.23.23"
 val Log4CatsVersion = "2.6.0"
 val MonocleVersion = "3.2.0"
@@ -24,7 +24,7 @@ val MunitVersion = "0.7.29"
 val MunitCE3Version = "1.0.7"
 val NatchezVersion = "0.1.6"
 val ScalaCheckEffectMunitVersion = "1.0.4"
-val ScodecBitsVersion = "1.1.37"
+val ScodecBitsVersion = "1.1.38"
 val ShapelessVersion = "3.3.0"
 
 ThisBuild / scalacOptions ++=
