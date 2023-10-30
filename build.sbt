@@ -13,7 +13,7 @@ ThisBuild / githubWorkflowEnv += "SERVICE_ACCOUNT_CREDENTIALS" -> "${{ secrets.S
 val Scala3 = "3.3.1"
 ThisBuild / crossScalaVersions := Seq(Scala3)
 
-val CatsVersion = "2.9.0"
+val CatsVersion = "2.10.0"
 val CatsEffectVersion = "3.5.2"
 val CirceVersion = "0.14.5"
 val Fs2Version = "3.9.2"
