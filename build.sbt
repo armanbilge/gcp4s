@@ -15,7 +15,7 @@ ThisBuild / crossScalaVersions := Seq(Scala3)
 
 val CatsVersion = "2.9.0"
 val CatsEffectVersion = "3.5.2"
-val CirceVersion = "0.14.5"
+val CirceVersion = "0.14.6"
 val Fs2Version = "3.9.2"
 val Http4sVersion = "0.23.23"
 val Log4CatsVersion = "2.6.0"
