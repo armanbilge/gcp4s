@@ -64,7 +64,7 @@ lazy val core = crossProject(JVMPlatform, JSPlatform)
   )
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.12" % Test
+      "ch.qos.logback" % "logback-classic" % "1.2.13" % Test
     )
   )
   .jvmSettings(commonJVMSettings)
