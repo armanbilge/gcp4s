@@ -25,7 +25,7 @@ val MunitCE3Version = "1.0.7"
 val NatchezVersion = "0.1.6"
 val ScalaCheckEffectMunitVersion = "1.0.4"
 val ScodecBitsVersion = "1.1.38"
-val ShapelessVersion = "3.3.0"
+val ShapelessVersion = "3.4.0"
 
 ThisBuild / scalacOptions ++=
   Seq("-new-syntax", "-indent", "-source:future", "-Xmax-inlines", "64")
